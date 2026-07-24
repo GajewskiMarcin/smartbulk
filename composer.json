@@ -1,0 +1,30 @@
+{
+    "name": "marcingajewski/smartbulk",
+    "description": "SmartBulk — advanced bulk product management for PrestaShop with AI assistant",
+    "type": "prestashop-module",
+    "license": "AFL-3.0",
+    "authors": [
+        {
+            "name": "marcingajewski.pl",
+            "email": "marcin.gajewski@truck-experts.pl",
+            "homepage": "https://marcingajewski.pl"
+        }
+    ],
+    "require": {
+        "php": ">=8.1"
+    },
+    "autoload": {
+        "psr-4": {
+            "SmartBulk\\": "src/"
+        },
+        "classmap": [
+            "smartbulk.php",
+            "controllers/"
+        ],
+        "exclude-from-classmap": []
+    },
+    "config": {
+        "preferred-install": "dist",
+        "prepend-autoloader": false
+    }
+}

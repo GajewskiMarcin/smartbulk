@@ -1,0 +1,109 @@
+{#
+  SmartBulk — Product Health panel
+  Rendered into the "Modules" tab of the native PS product form via
+  hookDisplayAdminProductsExtra. Shows composite + per-group scores and
+  the full list of detected issues for this product, with one-click
+  hand-off to AI Assistant / Bulk Editor for fixes.
+#}
+
+{% set composite = snap.composite_score %}
+{% set badge_color = composite >= 80 ? '#10b981' : (composite >= 50 ? '#f59e0b' : '#ef4444') %}
+{% set badge_label = composite >= 80 ? 'Strong' : (composite >= 50 ? 'Needs attention' : 'Critical') %}
+
+{# Group issues by group #}
+{% set by_group = {'seo': [], 'content': [], 'codes': []} %}
+{% for issue_id in snap.all_issues %}
+    {% if issue_meta[issue_id] is defined %}
+        {% set meta = issue_meta[issue_id] %}
+        {% set bucket = by_group[meta.group] %}
+        {% set bucket = bucket|merge([{
+            'id': issue_id,
+            'label': meta.label,
+            'severity': meta.severity,
+            'fixable_by': meta.fixable_by,
+            'task_type': meta.task_type,
+            'bulk_field': meta.bulk_field,
+            'fix_url': meta.fix_url|default(null),
+        }]) %}
+        {% set by_group = by_group|merge({(meta.group): bucket}) %}
+    {% endif %}
+{% endfor %}
+
+<div class="smartbulk-health-panel" style="font-family: inherit; padding: 4px 0;">
+
+    {# Top row: composite score + per-group scores side by side #}
+    <div style="display:flex; gap:24px; align-items:stretch; padding: 12px; background: #f8fafc; border-radius: 8px; margin-bottom: 16px;">
+        <div style="flex: 0 0 auto; text-align: center; padding: 0 8px; border-right: 1px solid #e2e8f0;">
+            <div style="font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; color: #64748b; margin-bottom: 4px;">Health</div>
+            <div style="font-size: 36px; font-weight: 700; line-height: 1; color: {{ badge_color }};">{{ composite }}</div>
+            <div style="font-size: 10px; color: #94a3b8; margin-top: 2px;">/ 100</div>
+            <div style="margin-top: 6px; display: inline-block; padding: 2px 8px; font-size: 10px; font-weight: 600; color: #fff; background: {{ badge_color }}; border-radius: 10px;">{{ badge_label }}</div>
+        </div>
+        <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; gap: 6px;">
+            {% for g_id, g_label in {'seo': 'SEO', 'content': 'Content', 'codes': 'Product codes'} %}
+                {% set g_score = g_id == 'seo' ? snap.seo_score : (g_id == 'content' ? snap.content_score : snap.codes_score) %}
+                {% set g_color = g_score >= 80 ? '#10b981' : (g_score >= 50 ? '#f59e0b' : '#ef4444') %}
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <div style="flex: 0 0 100px; font-size: 12px; color: #64748b;">{{ g_label }}</div>
+                    <div style="flex: 1; height: 8px; background: #e2e8f0; border-radius: 4px; overflow: hidden; min-width: 100px;">
+                        <div style="height: 100%; width: {{ g_score }}%; background: {{ g_color }};"></div>
+                    </div>
+                    <div style="flex: 0 0 40px; text-align: right; font-size: 12px; font-weight: 600; color: {{ g_color }};">{{ g_score }}</div>
+                </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    {# Issues list, grouped #}
+    {% if snap.all_issues|length == 0 %}
+        <div style="text-align: center; padding: 16px; color: #16a34a; font-size: 13px;">
+            ✓ No issues detected for this product.
+        </div>
+    {% else %}
+        <div style="font-size: 12px; color: #64748b; margin-bottom: 8px;">
+            {{ snap.issues_count }} issue{{ snap.issues_count != 1 ? 's' : '' }} detected. Click <strong>Fix</strong> to jump to the right SmartBulk tool with this product preselected.
+        </div>
+
+        {% for g_id, g_label in {'seo': 'SEO', 'content': 'Content', 'codes': 'Product codes'} %}
+            {% set issues = by_group[g_id] %}
+            {% if issues|length > 0 %}
+                <div style="margin-bottom: 12px;">
+                    <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.5px; color: #64748b; font-weight: 600; margin-bottom: 6px;">{{ g_label }}</div>
+                    <div style="border: 1px solid #e2e8f0; border-radius: 6px; background: #fff;">
+                        {% for issue in issues %}
+                            {% set sev_color = issue.severity == 'high' ? '#dc2626' : (issue.severity == 'medium' ? '#d97706' : '#64748b') %}
+                            {% set sev_bg = issue.severity == 'high' ? '#fef2f2' : (issue.severity == 'medium' ? '#fffbeb' : '#f8fafc') %}
+                            <div style="display: flex; align-items: center; gap: 12px; padding: 10px 12px; {% if not loop.last %}border-bottom: 1px solid #e2e8f0;{% endif %}">
+                                <div style="flex: 0 0 70px; font-size: 10px; font-weight: 600; text-transform: uppercase; color: {{ sev_color }}; background: {{ sev_bg }}; padding: 2px 6px; border-radius: 4px; text-align: center;">
+                                    {{ issue.severity }}
+                                </div>
+                                <div style="flex: 1; font-size: 13px; color: #1e293b;">{{ issue.label }}</div>
+                                <div style="flex: 0 0 auto;">
+                                    {% if issue.fixable_by == 'ai' and issue.fix_url %}
+                                        <a href="{{ issue.fix_url }}" target="_blank" rel="noopener"
+                                           style="display: inline-block; padding: 5px 10px; font-size: 11px; font-weight: 500; color: #fff; background: #6366f1; border-radius: 5px; text-decoration: none;">
+                                            ✨ Fix with AI
+                                        </a>
+                                    {% elseif issue.fixable_by == 'bulk' and issue.fix_url %}
+                                        <a href="{{ issue.fix_url }}" target="_blank" rel="noopener"
+                                           style="display: inline-block; padding: 5px 10px; font-size: 11px; font-weight: 500; color: #fff; background: #475569; border-radius: 5px; text-decoration: none;">
+                                            📝 Fix in bulk
+                                        </a>
+                                    {% else %}
+                                        <span style="display: inline-block; padding: 5px 10px; font-size: 11px; color: #64748b;">Edit manually above ↑</span>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endif %}
+        {% endfor %}
+    {% endif %}
+
+    <div style="margin-top: 12px; padding-top: 8px; border-top: 1px solid #e2e8f0; font-size: 11px; color: #94a3b8; display: flex; justify-content: space-between; align-items: center;">
+        <span>Score is recomputed every time you save this product.</span>
+        <a href="{{ smartbulk_url }}#/health" target="_blank" rel="noopener" style="color: #6366f1; text-decoration: none;">Open Content Health overview →</a>
+    </div>
+
+</div>

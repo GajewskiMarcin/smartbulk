@@ -1,0 +1,28 @@
+{#
+  SmartBulk — SPA shell
+  Loads the compiled React app from views/js/app/dist/.
+  The bootstrap object is injected as window.SmartBulk so the app can read
+  module/shop/user context synchronously on mount.
+#}
+{% extends '@PrestaShop/Admin/layout.html.twig' %}
+{% trans_default_domain "Modules.Smartbulk.Admin" %}
+
+{% set smartbulk_assets = '/modules/smartbulk/views/js/app/dist' %}
+{% set smartbulk_v = bootstrap.assets_version|default('dev') %}
+
+{% block stylesheets %}
+    {{ parent() }}
+    <link rel="stylesheet" href="{{ smartbulk_assets }}/style.css?v={{ smartbulk_v }}">
+{% endblock %}
+
+{% block content %}
+    <div id="smartbulk-root" class="smartbulk-scope"></div>
+    <script>
+        window.SmartBulk = {{ bootstrap|json_encode|raw }};
+    </script>
+    <script type="module" src="{{ smartbulk_assets }}/smartbulk.js?v={{ smartbulk_v }}"></script>
+{% endblock %}
+
+{% block javascripts %}
+    {{ parent() }}
+{% endblock %}

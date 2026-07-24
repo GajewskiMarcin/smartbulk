@@ -1,0 +1,72 @@
+# SmartBulk — Symfony service container
+# Explicit registration (PS module loader doesn't support resource globbing reliably).
+
+services:
+    _defaults:
+        autowire: true
+        autoconfigure: true
+        public: true
+
+    # ---- Repositories ----
+    SmartBulk\Repository\PromptRepository: ~
+    SmartBulk\Repository\AiRunRepository: ~
+    SmartBulk\Repository\MasseditRepository: ~
+    SmartBulk\Repository\SegmentRepository: ~
+    SmartBulk\Repository\ScheduleRepository: ~
+    SmartBulk\Repository\ActionTemplateRepository: ~
+
+    # ---- Services ----
+    SmartBulk\Service\Security\ApiKeyVault: ~
+    SmartBulk\Service\SettingsService: ~
+    SmartBulk\Service\Prompt\PromptService: ~
+    SmartBulk\Service\Prompt\DefaultPrompts: ~
+
+    # ---- Segments ----
+    SmartBulk\Service\Segment\ConditionTreeCompiler: ~
+    SmartBulk\Service\Segment\SegmentService: ~
+    SmartBulk\Service\Segment\PresetSegments: ~
+
+    # ---- Bulk Editor (deterministic) ----
+    SmartBulk\Service\Bulk\ActionApplier: ~
+    SmartBulk\Service\Bulk\BulkEditorService: ~
+
+    # ---- Content Health ----
+    SmartBulk\Service\Health\ContentHealthService: ~
+    SmartBulk\Service\Health\ProductHealthScorer: ~
+
+    # ---- History ----
+    SmartBulk\Service\History\HistoryService: ~
+
+    # ---- Scheduler ----
+    SmartBulk\Service\Schedule\ScheduleService: ~
+
+    # ---- Dashboard ----
+    SmartBulk\Service\Dashboard\DashboardService: ~
+
+    # ---- Configuration portability ----
+    SmartBulk\Service\Config\ConfigPortabilityService: ~
+
+    # ---- AI pipeline ----
+    SmartBulk\Service\Ai\ClaudeProvider: ~
+    SmartBulk\Service\Ai\OpenAIProvider: ~
+    SmartBulk\Service\Ai\AIProviderFactory: ~
+    SmartBulk\Service\Ai\ProductContextLoader: ~
+    SmartBulk\Service\Ai\PromptRenderer: ~
+    SmartBulk\Service\Ai\AIService: ~
+    SmartBulk\Service\Ai\AIBatchService: ~
+    SmartBulk\Service\Ai\CostEstimator: ~
+
+    # ---- Controllers (must be public for router) ----
+    SmartBulk\Controller\AdminSmartBulkController: ~
+    SmartBulk\Controller\Api\SettingsController: ~
+    SmartBulk\Controller\Api\PromptController: ~
+    SmartBulk\Controller\Api\AiController: ~
+    SmartBulk\Controller\Api\ProductController: ~
+    SmartBulk\Controller\Api\SegmentController: ~
+    SmartBulk\Controller\Api\LookupController: ~
+    SmartBulk\Controller\Api\BulkController: ~
+    SmartBulk\Controller\Api\HealthController: ~
+    SmartBulk\Controller\Api\HistoryController: ~
+    SmartBulk\Controller\Api\ScheduleController: ~
+    SmartBulk\Controller\Api\DashboardController: ~
+    SmartBulk\Controller\Api\ConfigController: ~

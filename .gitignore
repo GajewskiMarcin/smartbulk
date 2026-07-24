@@ -1,0 +1,26 @@
+# Dependencies (we commit dist/, not node_modules/)
+views/js/app/node_modules/
+node_modules/
+
+# Vite dev artifacts
+views/js/app/.vite/
+
+# Composer deps (if used in the future)
+vendor/
+
+# Editor / OS junk
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# PHP caches
+*.cache
+
+# Env files — NEVER commit API keys or secrets
+.env
+.env.local
+
+# Log files
+*.log
+logs/

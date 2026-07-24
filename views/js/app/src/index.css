@@ -1,0 +1,39 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Root scope — applied only inside #smartbulk-root so PS admin styles outside
+   stay untouched. Tailwind's `important: '.smartbulk-scope'` ensures utilities
+   always win inside. */
+.smartbulk-scope {
+  font-family: Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #0f172a;
+}
+
+.smartbulk-scope * {
+  box-sizing: border-box;
+}
+
+/* Kill PS admin's anchor underline — nav items and buttons render as <a> */
+.smartbulk-scope a,
+.smartbulk-scope a:hover,
+.smartbulk-scope a:focus,
+.smartbulk-scope a:active {
+  text-decoration: none !important;
+}
+
+/* Ensure SP admin's bootstrap doesn't override our box model for inputs */
+.smartbulk-scope input,
+.smartbulk-scope select,
+.smartbulk-scope textarea,
+.smartbulk-scope button {
+  font-family: inherit;
+}
+
+/* Reset SP admin table styles inside scope — Tailwind handles the rest */
+.smartbulk-scope table {
+  border-collapse: collapse;
+  width: 100%;
+}

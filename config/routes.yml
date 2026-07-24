@@ -1,0 +1,492 @@
+# SmartBulk — Symfony routes (PS 8/9 compatible)
+# _legacy_controller defaults map the legacy Tab class_name to the Symfony route,
+# so clicking "AdminSmartBulk" in BO menu lands on the Symfony controller.
+
+smartbulk_index:
+    path: /smartbulk
+    methods: [GET]
+    defaults:
+        _controller: 'SmartBulk\Controller\AdminSmartBulkController::indexAction'
+        _legacy_controller: AdminSmartBulk
+
+smartbulk_grid_handoff:
+    path: /smartbulk/grid-handoff
+    methods: [POST, GET]
+    defaults:
+        _controller: 'SmartBulk\Controller\AdminSmartBulkController::gridHandoffAction'
+        _legacy_controller: AdminSmartBulk
+
+smartbulk_ai_handoff:
+    path: /smartbulk/ai-handoff
+    methods: [GET]
+    defaults:
+        _controller: 'SmartBulk\Controller\AdminSmartBulkController::aiHandoffAction'
+        _legacy_controller: AdminSmartBulk
+
+smartbulk_api_ping:
+    path: /smartbulk/api/ping
+    methods: [GET]
+    defaults:
+        _controller: 'SmartBulk\Controller\AdminSmartBulkController::pingAction'
+        _legacy_controller: AdminSmartBulk
+
+# --- Settings -------------------------------------------------------
+smartbulk_api_settings_get:
+    path: /smartbulk/api/settings
+    methods: [GET]
+    defaults:
+        _controller: 'SmartBulk\Controller\Api\SettingsController::getAction'
+        _legacy_controller: AdminSmartBulk
+
+smartbulk_api_settings_save:
+    path: /smartbulk/api/settings
+    methods: [POST]
+    defaults:
+        _controller: 'SmartBulk\Controller\Api\SettingsController::saveAction'
+        _legacy_controller: AdminSmartBulk
+
+# --- Prompts --------------------------------------------------------
+smartbulk_api_prompts_list:
+    path: /smartbulk/api/prompts
+    methods: [GET]
+    defaults:
+        _controller: 'SmartBulk\Controller\Api\PromptController::listAction'
+        _legacy_controller: AdminSmartBulk
+
+smartbulk_api_prompts_create:
+    path: /smartbulk/api/prompts
+    methods: [POST]
+    defaults:
+        _controller: 'SmartBulk\Controller\Api\PromptController::createAction'
+        _legacy_controller: AdminSmartBulk
+
+smartbulk_api_prompts_detail:
+    path: /smartbulk/api/prompts/{id}
+    methods: [GET]
+    requirements: { id: '\d+' }
+    defaults:
+        _controller: 'SmartBulk\Controller\Api\PromptController::detailAction'
+        _legacy_controller: AdminSmartBulk
+
+smartbulk_api_prompts_rename:
+    path: /smartbulk/api/prompts/{id}
+    methods: [PATCH]
+    requirements: { id: '\d+' }
+    defaults:
+        _controller: 'SmartBulk\Controller\Api\PromptController::renameAction'
+        _legacy_controller: AdminSmartBulk
+
+smartbulk_api_prompts_delete:
+    path: /smartbulk/api/prompts/{id}
+    methods: [DELETE]
+    requirements: { id: '\d+' }
+    defaults:
+        _controller: 'SmartBulk\Controller\Api\PromptController::deleteAction'
+        _legacy_controller: AdminSmartBulk
+
+smartbulk_api_prompts_create_version:
+    path: /smartbulk/api/prompts/{id}/versions
+    methods: [POST]
+    requirements: { id: '\d+' }
+    defaults:
+        _controller: 'SmartBulk\Controller\Api\PromptController::createVersionAction'
+        _legacy_controller: AdminSmartBulk
+
+smartbulk_api_prompts_activate_version:
+    path: /smartbulk/api/prompts/{id}/versions/{versionId}/activate
+    methods: [POST]
+    requirements: { id: '\d+', versionId: '\d+' }
+    defaults:
+        _controller: 'SmartBulk\Controller\Api\PromptController::activateVersionAction'
+        _legacy_controller: AdminSmartBulk
+
+# --- AI -------------------------------------------------------------
+smartbulk_api_ai_generate:
+    path: /smartbulk/api/ai/generate
+    methods: [POST]
+    defaults:
+        _controller: 'SmartBulk\Controller\Api\AiController::generateAction'
+        _legacy_controller: AdminSmartBulk
+
+smartbulk_api_ai_accept:
+    path: /smartbulk/api/ai/runs/{id}/accept
+    methods: [POST]
+    requirements: { id: '\d+' }
+    defaults:
+        _controller: 'SmartBulk\Controller\Api\AiController::acceptAction'
+        _legacy_controller: AdminSmartBulk
+
+smartbulk_api_ai_reject:
+    path: /smartbulk/api/ai/runs/{id}/reject
+    methods: [POST]
+    requirements: { id: '\d+' }
+    defaults:
+        _controller: 'SmartBulk\Controller\Api\AiController::rejectAction'
+        _legacy_controller: AdminSmartBulk
+
+smartbulk_api_ai_test:
+    path: /smartbulk/api/ai/test-connection
+    methods: [GET]
+    defaults:
+        _controller: 'SmartBulk\Controller\Api\AiController::testConnectionAction'
+        _legacy_controller: AdminSmartBulk
+
+smartbulk_api_ai_estimate:
+    path: /smartbulk/api/ai/estimate
+    methods: [POST]
+    defaults:
+        _controller: 'SmartBulk\Controller\Api\AiController::estimateAction'
+        _legacy_controller: AdminSmartBulk
+
+# --- Products (lookup) ---------------------------------------------
+smartbulk_api_products_search:
+    path: /smartbulk/api/products/search
+    methods: [GET]
+    defaults:
+        _controller: 'SmartBulk\Controller\Api\ProductController::searchAction'
+        _legacy_controller: AdminSmartBulk
+
+# --- Lookups (for filter dropdowns) --------------------------------
+smartbulk_api_lookups_categories:
+    path: /smartbulk/api/lookups/categories
+    methods: [GET]
+    defaults:
+        _controller: 'SmartBulk\Controller\Api\LookupController::categoriesAction'
+        _legacy_controller: AdminSmartBulk
+
+smartbulk_api_lookups_brands:
+    path: /smartbulk/api/lookups/brands
+    methods: [GET]
+    defaults:
+        _controller: 'SmartBulk\Controller\Api\LookupController::brandsAction'
+        _legacy_controller: AdminSmartBulk
+
+smartbulk_api_lookups_suppliers:
+    path: /smartbulk/api/lookups/suppliers
+    methods: [GET]
+    defaults:
+        _controller: 'SmartBulk\Controller\Api\LookupController::suppliersAction'
+        _legacy_controller: AdminSmartBulk
+
+smartbulk_api_lookups_features:
+    path: /smartbulk/api/lookups/features
+    methods: [GET]
+    defaults:
+        _controller: 'SmartBulk\Controller\Api\LookupController::featuresAction'
+        _legacy_controller: AdminSmartBulk
+
+smartbulk_api_lookups_tags:
+    path: /smartbulk/api/lookups/tags
+    methods: [GET]
+    defaults:
+        _controller: 'SmartBulk\Controller\Api\LookupController::tagsAction'
+        _legacy_controller: AdminSmartBulk
+
+smartbulk_api_lookups_attributes:
+    path: /smartbulk/api/lookups/attributes
+    methods: [GET]
+    defaults:
+        _controller: 'SmartBulk\Controller\Api\LookupController::attributesAction'
+        _legacy_controller: AdminSmartBulk
+
+smartbulk_api_lookups_languages:
+    path: /smartbulk/api/lookups/languages
+    methods: [GET]
+    defaults:
+        _controller: 'SmartBulk\Controller\Api\LookupController::languagesAction'
+        _legacy_controller: AdminSmartBulk
+
+smartbulk_api_lookups_tax_rules:
+    path: /smartbulk/api/lookups/tax-rules
+    methods: [GET]
+    defaults:
+        _controller: 'SmartBulk\Controller\Api\LookupController::taxRulesAction'
+        _legacy_controller: AdminSmartBulk
+
+smartbulk_api_lookups_field_catalog:
+    path: /smartbulk/api/lookups/field-catalog
+    methods: [GET]
+    defaults:
+        _controller: 'SmartBulk\Controller\Api\LookupController::fieldCatalogAction'
+        _legacy_controller: AdminSmartBulk
+
+# --- Segments (filter evaluation + saved) --------------------------
+smartbulk_api_segments_presets:
+    path: /smartbulk/api/segments/presets
+    methods: [GET]
+    defaults:
+        _controller: 'SmartBulk\Controller\Api\SegmentController::presetsAction'
+        _legacy_controller: AdminSmartBulk
+
+smartbulk_api_segments_count:
+    path: /smartbulk/api/segments/count
+    methods: [POST]
+    defaults:
+        _controller: 'SmartBulk\Controller\Api\SegmentController::countAction'
+        _legacy_controller: AdminSmartBulk
+
+smartbulk_api_segments_sample:
+    path: /smartbulk/api/segments/sample
+    methods: [POST]
+    defaults:
+        _controller: 'SmartBulk\Controller\Api\SegmentController::sampleAction'
+        _legacy_controller: AdminSmartBulk
+
+smartbulk_api_segments_product_ids:
+    path: /smartbulk/api/segments/product-ids
+    methods: [POST]
+    defaults:
+        _controller: 'SmartBulk\Controller\Api\SegmentController::productIdsAction'
+        _legacy_controller: AdminSmartBulk
+
+smartbulk_api_segments_list:
+    path: /smartbulk/api/segments
+    methods: [GET]
+    defaults:
+        _controller: 'SmartBulk\Controller\Api\SegmentController::listAction'
+        _legacy_controller: AdminSmartBulk
+
+smartbulk_api_segments_create:
+    path: /smartbulk/api/segments
+    methods: [POST]
+    defaults:
+        _controller: 'SmartBulk\Controller\Api\SegmentController::createAction'
+        _legacy_controller: AdminSmartBulk
+
+smartbulk_api_segments_delete:
+    path: /smartbulk/api/segments/{id}
+    methods: [DELETE]
+    requirements: { id: '\d+' }
+    defaults:
+        _controller: 'SmartBulk\Controller\Api\SegmentController::deleteAction'
+        _legacy_controller: AdminSmartBulk
+
+# --- AI Batch -------------------------------------------------------
+smartbulk_api_ai_batch_create:
+    path: /smartbulk/api/ai/batch
+    methods: [POST]
+    defaults:
+        _controller: 'SmartBulk\Controller\Api\AiController::createBatchAction'
+        _legacy_controller: AdminSmartBulk
+
+smartbulk_api_ai_batch_get:
+    path: /smartbulk/api/ai/batch/{id}
+    methods: [GET]
+    requirements: { id: '\d+' }
+    defaults:
+        _controller: 'SmartBulk\Controller\Api\AiController::getBatchAction'
+        _legacy_controller: AdminSmartBulk
+
+smartbulk_api_ai_batch_process:
+    path: /smartbulk/api/ai/batch/{id}/process-next
+    methods: [POST]
+    requirements: { id: '\d+' }
+    defaults:
+        _controller: 'SmartBulk\Controller\Api\AiController::processNextBatchAction'
+        _legacy_controller: AdminSmartBulk
+
+smartbulk_api_ai_batch_accept_all:
+    path: /smartbulk/api/ai/batch/{id}/accept-all
+    methods: [POST]
+    requirements: { id: '\d+' }
+    defaults:
+        _controller: 'SmartBulk\Controller\Api\AiController::acceptAllBatchAction'
+        _legacy_controller: AdminSmartBulk
+
+smartbulk_api_ai_batch_reject_all:
+    path: /smartbulk/api/ai/batch/{id}/reject-all
+    methods: [POST]
+    requirements: { id: '\d+' }
+    defaults:
+        _controller: 'SmartBulk\Controller\Api\AiController::rejectAllBatchAction'
+        _legacy_controller: AdminSmartBulk
+
+# --- Bulk Editor (deterministic) -----------------------------------
+smartbulk_api_bulk_fields:
+    path: /smartbulk/api/bulk/fields
+    methods: [GET]
+    defaults:
+        _controller: 'SmartBulk\Controller\Api\BulkController::fieldsAction'
+        _legacy_controller: AdminSmartBulk
+
+smartbulk_api_bulk_templates:
+    path: /smartbulk/api/bulk/templates
+    methods: [GET]
+    defaults:
+        _controller: 'SmartBulk\Controller\Api\BulkController::templatesAction'
+        _legacy_controller: AdminSmartBulk
+
+smartbulk_api_bulk_templates_create:
+    path: /smartbulk/api/bulk/templates
+    methods: [POST]
+    defaults:
+        _controller: 'SmartBulk\Controller\Api\BulkController::createTemplateAction'
+        _legacy_controller: AdminSmartBulk
+
+smartbulk_api_bulk_templates_delete:
+    path: /smartbulk/api/bulk/templates/{id}
+    methods: [DELETE]
+    requirements: { id: '\d+' }
+    defaults:
+        _controller: 'SmartBulk\Controller\Api\BulkController::deleteTemplateAction'
+        _legacy_controller: AdminSmartBulk
+
+smartbulk_api_bulk_preview:
+    path: /smartbulk/api/bulk/preview
+    methods: [POST]
+    defaults:
+        _controller: 'SmartBulk\Controller\Api\BulkController::previewAction'
+        _legacy_controller: AdminSmartBulk
+
+smartbulk_api_bulk_batch_create:
+    path: /smartbulk/api/bulk/batch
+    methods: [POST]
+    defaults:
+        _controller: 'SmartBulk\Controller\Api\BulkController::createBatchAction'
+        _legacy_controller: AdminSmartBulk
+
+smartbulk_api_bulk_batch_get:
+    path: /smartbulk/api/bulk/batch/{id}
+    methods: [GET]
+    requirements: { id: '\d+' }
+    defaults:
+        _controller: 'SmartBulk\Controller\Api\BulkController::getBatchAction'
+        _legacy_controller: AdminSmartBulk
+
+smartbulk_api_bulk_batch_process:
+    path: /smartbulk/api/bulk/batch/{id}/process-next
+    methods: [POST]
+    requirements: { id: '\d+' }
+    defaults:
+        _controller: 'SmartBulk\Controller\Api\BulkController::processNextAction'
+        _legacy_controller: AdminSmartBulk
+
+smartbulk_api_bulk_batch_undo:
+    path: /smartbulk/api/bulk/batch/{id}/undo
+    methods: [POST]
+    requirements: { id: '\d+' }
+    defaults:
+        _controller: 'SmartBulk\Controller\Api\BulkController::undoAction'
+        _legacy_controller: AdminSmartBulk
+
+smartbulk_api_bulk_batch_cancel:
+    path: /smartbulk/api/bulk/batch/{id}/cancel
+    methods: [POST]
+    requirements: { id: '\d+' }
+    defaults:
+        _controller: 'SmartBulk\Controller\Api\BulkController::cancelAction'
+        _legacy_controller: AdminSmartBulk
+
+# --- Content Health ------------------------------------------------
+smartbulk_api_health_scan:
+    path: /smartbulk/api/health/scan
+    methods: [GET]
+    defaults:
+        _controller: 'SmartBulk\Controller\Api\HealthController::scanAction'
+        _legacy_controller: AdminSmartBulk
+
+smartbulk_api_health_product_ids:
+    path: /smartbulk/api/health/product-ids
+    methods: [GET]
+    defaults:
+        _controller: 'SmartBulk\Controller\Api\HealthController::productIdsAction'
+        _legacy_controller: AdminSmartBulk
+
+smartbulk_api_health_products:
+    path: /smartbulk/api/health/products
+    methods: [GET]
+    defaults:
+        _controller: 'SmartBulk\Controller\Api\HealthController::productsAction'
+        _legacy_controller: AdminSmartBulk
+
+smartbulk_api_health_snapshots:
+    path: /smartbulk/api/health/snapshots
+    methods: [GET]
+    defaults:
+        _controller: 'SmartBulk\Controller\Api\HealthController::snapshotsAction'
+        _legacy_controller: AdminSmartBulk
+
+# --- History -------------------------------------------------------
+smartbulk_api_history_list:
+    path: /smartbulk/api/history
+    methods: [GET]
+    defaults:
+        _controller: 'SmartBulk\Controller\Api\HistoryController::listAction'
+        _legacy_controller: AdminSmartBulk
+
+smartbulk_api_history_detail:
+    path: /smartbulk/api/history/{id}
+    methods: [GET]
+    requirements: { id: '\d+' }
+    defaults:
+        _controller: 'SmartBulk\Controller\Api\HistoryController::detailAction'
+        _legacy_controller: AdminSmartBulk
+
+# --- Scheduler -----------------------------------------------------
+smartbulk_api_schedules_list:
+    path: /smartbulk/api/schedules
+    methods: [GET]
+    defaults:
+        _controller: 'SmartBulk\Controller\Api\ScheduleController::listAction'
+        _legacy_controller: AdminSmartBulk
+
+smartbulk_api_schedules_create:
+    path: /smartbulk/api/schedules
+    methods: [POST]
+    defaults:
+        _controller: 'SmartBulk\Controller\Api\ScheduleController::createAction'
+        _legacy_controller: AdminSmartBulk
+
+smartbulk_api_schedules_update:
+    path: /smartbulk/api/schedules/{id}
+    methods: [PATCH]
+    requirements: { id: '\d+' }
+    defaults:
+        _controller: 'SmartBulk\Controller\Api\ScheduleController::updateAction'
+        _legacy_controller: AdminSmartBulk
+
+smartbulk_api_schedules_delete:
+    path: /smartbulk/api/schedules/{id}
+    methods: [DELETE]
+    requirements: { id: '\d+' }
+    defaults:
+        _controller: 'SmartBulk\Controller\Api\ScheduleController::deleteAction'
+        _legacy_controller: AdminSmartBulk
+
+smartbulk_api_schedules_run_now:
+    path: /smartbulk/api/schedules/{id}/run-now
+    methods: [POST]
+    requirements: { id: '\d+' }
+    defaults:
+        _controller: 'SmartBulk\Controller\Api\ScheduleController::runNowAction'
+        _legacy_controller: AdminSmartBulk
+
+smartbulk_api_schedules_heartbeat:
+    path: /smartbulk/api/schedules/heartbeat
+    methods: [GET, POST]
+    defaults:
+        _controller: 'SmartBulk\Controller\Api\ScheduleController::heartbeatAction'
+        _legacy_controller: AdminSmartBulk
+
+# --- Dashboard -----------------------------------------------------
+smartbulk_api_dashboard:
+    path: /smartbulk/api/dashboard
+    methods: [GET]
+    defaults:
+        _controller: 'SmartBulk\Controller\Api\DashboardController::getAction'
+        _legacy_controller: AdminSmartBulk
+
+# --- Configuration portability ------------------------------------
+smartbulk_api_config_export:
+    path: /smartbulk/api/config/export
+    methods: [GET]
+    defaults:
+        _controller: 'SmartBulk\Controller\Api\ConfigController::exportAction'
+        _legacy_controller: AdminSmartBulk
+
+smartbulk_api_config_import:
+    path: /smartbulk/api/config/import
+    methods: [POST]
+    defaults:
+        _controller: 'SmartBulk\Controller\Api\ConfigController::importAction'
+        _legacy_controller: AdminSmartBulk

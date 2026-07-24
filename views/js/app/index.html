@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>SmartBulk — dev preview</title>
+    <style>
+      body { margin: 0; background: #f1f5f9; font-family: Inter, system-ui, sans-serif; }
+    </style>
+  </head>
+  <body>
+    <!-- In PS BO this div is rendered by shell.html.twig. In dev we provide it here. -->
+    <div id="smartbulk-root" class="smartbulk-scope"></div>
+    <script>
+      // Mock bootstrap for dev. Real value injected by Twig in production.
+      window.SmartBulk = {
+        module: { name: 'smartbulk', version: '1.0.0-dev' },
+        shop: { id: 1, ids: [1], is_all: false, is_group: false, is_single: true },
+        user: { name: 'Marcin (dev)', id: 1 },
+        links: {
+          api: '/smartbulk/api/ping',
+          buy_a_coffee: 'https://buymeacoffee.com/marcingajewski',
+          github: 'https://github.com/GajewskiMarcin/smartbulk',
+        },
+      };
+    </script>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
