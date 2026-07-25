@@ -35,6 +35,7 @@ final class MasseditRepository
             'products_matched' => (int) ($data['products_matched'] ?? 0),
             'products_changed' => 0,
             'products_failed'  => 0,
+            'processed_offset' => 0,
             'started_at'       => date('Y-m-d H:i:s'),
             'id_employee'      => isset($data['id_employee']) ? (int) $data['id_employee'] : null,
         ]);
@@ -73,6 +74,16 @@ final class MasseditRepository
         Db::getInstance()->execute(
             'UPDATE `' . _DB_PREFIX_ . 'smartbulk_massedit`
              SET ' . implode(', ', $updates) . '
+             WHERE id_massedit = ' . (int) $idMassedit
+        );
+    }
+
+    /** Cursor into the batch's product-id snapshot (how many consumed so far). */
+    public function setProcessedOffset(int $idMassedit, int $offset): void
+    {
+        Db::getInstance()->execute(
+            'UPDATE `' . _DB_PREFIX_ . 'smartbulk_massedit`
+             SET processed_offset = ' . (int) $offset . '
              WHERE id_massedit = ' . (int) $idMassedit
         );
     }

@@ -50,9 +50,23 @@ export interface AiRunRow {
   created_at: string;
 }
 
+export interface LogFieldSummary {
+  field: string;
+  changed: number;
+  failed: number;
+}
+
+export interface LogSummary {
+  total_rows: number;
+  total_changed: number;
+  total_failed: number;
+  by_field: LogFieldSummary[];
+}
+
 export interface BatchDetail extends BatchSummary {
   action_snapshot: Record<string, unknown> | null;
   segment_snapshot: Record<string, unknown> | null;
+  log_summary?: LogSummary;
   logs?: BulkLogRow[];
   runs?: AiRunRow[];
 }

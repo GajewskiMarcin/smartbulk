@@ -145,7 +145,7 @@ final class BulkController extends PrestaShopAdminController
     #[AdminSecurity("is_granted('update', 'AdminSmartBulk')")]
     public function processNextAction(int $id, Request $request, BulkEditorService $service): JsonResponse
     {
-        $limit = max(1, min(50, (int) $request->query->get('limit', 10)));
+        $limit = max(1, min(1000, (int) $request->query->get('limit', 100)));
         try {
             return new JsonResponse(['ok' => true, 'batch' => $service->processNext($id, $limit)]);
         } catch (InvalidArgumentException $e) {

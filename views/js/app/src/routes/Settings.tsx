@@ -18,6 +18,7 @@ interface Settings {
   mask_prices: boolean;
   brand_tone: string;
   retention_days: number;
+  bulk_chunk: number;
   claude_api_key: string;     // masked preview when stored; empty when not set
   openai_api_key: string;
   has_claude_key: boolean;
@@ -36,6 +37,7 @@ interface SaveInput {
   mask_prices?: boolean;
   brand_tone?: string;
   retention_days?: number;
+  bulk_chunk?: number;
   claude_api_key?: string | null;
   openai_api_key?: string | null;
 }
@@ -69,6 +71,7 @@ export default function Settings() {
   const [maskPrices, setMaskPrices] = useState<boolean>(false);
   const [brandTone, setBrandTone] = useState<string>('');
   const [retentionDays, setRetentionDays] = useState<string>('90');
+  const [bulkChunk, setBulkChunk] = useState<string>('100');
   const [claudeKey, setClaudeKey] = useState<string>('');
   const [openaiKey, setOpenaiKey] = useState<string>('');
 
@@ -81,6 +84,7 @@ export default function Settings() {
     setMaskPrices(s.mask_prices);
     setBrandTone(s.brand_tone);
     setRetentionDays(String(s.retention_days));
+    setBulkChunk(String(s.bulk_chunk));
   }, [data?.settings]);
 
   const onSave = () => {
@@ -91,6 +95,7 @@ export default function Settings() {
       mask_prices: maskPrices,
       brand_tone: brandTone,
       retention_days: Number(retentionDays) || 90,
+      bulk_chunk: Number(bulkChunk) || 100,
     };
     // Only submit key fields if user typed something
     if (claudeKey !== '') payload.claude_api_key = claudeKey;
@@ -259,6 +264,26 @@ export default function Settings() {
                 min="1"
                 value={retentionDays}
                 onChange={(e) => setRetentionDays(e.target.value)}
+                className="max-w-[160px]"
+              />
+            </Field>
+          </Card>
+        </div>
+
+        {/* Bulk processing */}
+        <div className="lg:col-span-4">
+          <Card padding="md">
+            <SectionHeader
+              title={t('settings.bulk_title', 'Bulk processing')}
+              subtitle={t('settings.bulk_subtitle', 'How many products are processed per request when applying a bulk edit. Higher = faster, but each request takes longer.')}
+            />
+            <Field label={t('settings.bulk_chunk', 'Products per batch')}>
+              <Input
+                type="number"
+                min="10"
+                max="1000"
+                value={bulkChunk}
+                onChange={(e) => setBulkChunk(e.target.value)}
                 className="max-w-[160px]"
               />
             </Field>

@@ -95,13 +95,17 @@ final class HistoryService
         $batch['segment_snapshot'] = $row['segment_snapshot'] ? json_decode((string) $row['segment_snapshot'], true) : null;
 
         if ($batch['kind'] === 'bulk_edit') {
+            $batch['log_summary'] = $this->logSummary($idBatch);
             $batch['logs'] = $this->loadBulkLogs($idBatch);
         } elseif ($batch['kind'] === 'ai_batch') {
             $batch['runs'] = $this->loadAiRuns($idBatch);
             // For AI batches that had accepts, show the resulting field changes
             // too so the undo button drill-down shows what will be reverted.
             $logs = $this->loadBulkLogs($idBatch);
-            if (!empty($logs)) $batch['logs'] = $logs;
+            if (!empty($logs)) {
+                $batch['log_summary'] = $this->logSummary($idBatch);
+                $batch['logs'] = $logs;
+            }
         } else {
             $batch['logs'] = [];
         }
@@ -190,7 +194,7 @@ final class HistoryService
              FROM `{$prefix}smartbulk_massedit_log`
              WHERE id_massedit = " . (int) $idBatch . "
              ORDER BY id_log ASC
-             LIMIT 2000"
+             LIMIT 100"
         ) ?: [];
         return array_map(static fn (array $r) => [
             'id_log'     => (int) $r['id_log'],
@@ -203,6 +207,35 @@ final class HistoryService
             'error'      => $r['error'] !== null ? (string) $r['error'] : null,
             'changed_at' => (string) $r['changed_at'],
         ], $rows);
+    }
+
+    /** Cheap per-field aggregates for the batch (no row loading). @return array<string,mixed> */
+    private function logSummary(int $idBatch): array
+    {
+        $prefix = _DB_PREFIX_;
+        $rows = Db::getInstance()->executeS(
+            "SELECT field, status, COUNT(*) AS n
+             FROM `{$prefix}smartbulk_massedit_log`
+             WHERE id_massedit = " . (int) $idBatch . "
+             GROUP BY field, status"
+        ) ?: [];
+        $byField = [];
+        $totalChanged = 0; $totalFailed = 0; $totalRows = 0;
+        foreach ($rows as $r) {
+            $f = (string) $r['field']; $st = (string) $r['status']; $n = (int) $r['n'];
+            $totalRows += $n;
+            if (!isset($byField[$f])) {
+                $byField[$f] = ['field' => $f, 'changed' => 0, 'failed' => 0];
+            }
+            if ($st === 'changed') { $byField[$f]['changed'] += $n; $totalChanged += $n; }
+            elseif ($st === 'failed') { $byField[$f]['failed'] += $n; $totalFailed += $n; }
+        }
+        return [
+            'total_rows'    => $totalRows,
+            'total_changed' => $totalChanged,
+            'total_failed'  => $totalFailed,
+            'by_field'      => array_values($byField),
+        ];
     }
 
     /** @return array<int,array<string,mixed>> */

@@ -84,7 +84,7 @@ export default function PreviewPanel({ data, onDownloadCsv }: Props) {
     <div className="flex flex-col gap-4">
       {truncated && (
         <div className="bg-amber-50 border border-amber-200 text-amber-900 rounded-md px-3 py-2 text-[12px]">
-          {t2('preview.truncated_warn', '⚠ Scope contains {total} products — analyzed first {n} for preview. Apply will process all of them.', { total: total_scope.toLocaleString(), n: analyzed.toLocaleString() })}
+          {t2('preview.truncated_warn', 'Counts cover all {total} products - the list below shows the first {n} rows.', { total: total_scope.toLocaleString(), n: analyzed.toLocaleString() })}
         </div>
       )}
 

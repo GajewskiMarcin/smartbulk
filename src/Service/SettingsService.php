@@ -28,6 +28,7 @@ final class SettingsService
     public const KEY_AI_MASK_PRICES     = 'SMARTBULK_AI_MASK_PRICES';
     public const KEY_AI_BRAND_TONE      = 'SMARTBULK_AI_BRAND_TONE';
     public const KEY_DATA_RETENTION     = 'SMARTBULK_DATA_RETENTION_DAYS';
+    public const KEY_BULK_CHUNK         = 'SMARTBULK_BULK_CHUNK';
 
     // Secret keys — encrypted via ApiKeyVault
     public const KEY_CLAUDE_API_KEY     = 'SMARTBULK_CLAUDE_API_KEY_ENC';
@@ -59,6 +60,7 @@ final class SettingsService
             'mask_prices'     => (bool)   Configuration::get(self::KEY_AI_MASK_PRICES, 0),
             'brand_tone'      => (string) Configuration::get(self::KEY_AI_BRAND_TONE, ''),
             'retention_days'  => (int)    Configuration::get(self::KEY_DATA_RETENTION, 90),
+            'bulk_chunk'      => (int)    Configuration::get(self::KEY_BULK_CHUNK, 100),
             'claude_api_key'  => $this->getMaskedSecret(self::KEY_CLAUDE_API_KEY),
             'openai_api_key'  => $this->getMaskedSecret(self::KEY_OPENAI_API_KEY),
             'has_claude_key'  => $this->hasSecret(self::KEY_CLAUDE_API_KEY),
@@ -93,6 +95,9 @@ final class SettingsService
         }
         if (isset($input['retention_days'])) {
             Configuration::updateValue(self::KEY_DATA_RETENTION, max(1, (int) $input['retention_days']));
+        }
+        if (isset($input['bulk_chunk'])) {
+            Configuration::updateValue(self::KEY_BULK_CHUNK, max(10, min(1000, (int) $input['bulk_chunk'])));
         }
 
         // Secret keys

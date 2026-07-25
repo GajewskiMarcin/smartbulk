@@ -41,6 +41,7 @@ CREATE TABLE IF NOT EXISTS `{PREFIX}smartbulk_massedit` (
     `products_matched`  INT(11) NOT NULL DEFAULT 0,
     `products_changed`  INT(11) NOT NULL DEFAULT 0,
     `products_failed`   INT(11) NOT NULL DEFAULT 0,
+    `processed_offset`  INT(11) NOT NULL DEFAULT 0,
     `started_at`        DATETIME NOT NULL,
     `finished_at`       DATETIME DEFAULT NULL,
     `id_employee`       INT(11) DEFAULT NULL,

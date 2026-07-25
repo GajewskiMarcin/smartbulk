@@ -27,6 +27,7 @@ import {
   type PreviewResponse,
 } from '../lib/bulk';
 import { cn } from '../lib/utils';
+import { api } from '../lib/api';
 
 type Step = 1 | 2 | 3 | 4;
 
@@ -52,6 +53,15 @@ export default function BulkEditor() {
       setHandoff({ productIds: raw.productIds, label: raw.label, source: raw.source });
       setStep(2);
       // Clear state from history so a refresh doesn't re-apply it.
+      window.history.replaceState({}, '');
+    }
+  }, [location.state]);
+
+  // Resume an interrupted batch from History — jump straight into the runner.
+  useEffect(() => {
+    const resumeId = (location.state as { resumeBatchId?: number } | null)?.resumeBatchId;
+    if (typeof resumeId === 'number' && resumeId > 0) {
+      setActiveBatchId(resumeId);
       window.history.replaceState({}, '');
     }
   }, [location.state]);
@@ -460,12 +470,20 @@ function BatchRunner({ idBatch, onExit }: { idBatch: number; onExit: () => void 
     refetchInterval: (q) => {
       const d = q.state.data;
       if (!d) return 2000;
-      return d.remaining > 0 ? 2000 : false;
+      if (d.remaining <= 0) return false;
+      return d.total > 5000 ? 5000 : 2000; // ease off polling on big batches
     },
   });
 
+  const settingsQuery = useQuery({
+    queryKey: ['settings'],
+    queryFn: () => api.get<{ ok: boolean; settings: { bulk_chunk: number } }>('/modules/smartbulk/api/settings'),
+    staleTime: 60000,
+  });
+  const chunkSize = settingsQuery.data?.settings?.bulk_chunk ?? 100;
+
   const processMutation = useMutation({
-    mutationFn: () => bulkApi.processNext(idBatch, 10),
+    mutationFn: () => bulkApi.processNext(idBatch, chunkSize),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['bulk', 'batch', idBatch] }),
     onError: (e: Error) => toast.show(e.message || 'Processing failed', 'error'),
   });
@@ -578,7 +596,7 @@ function BatchRunner({ idBatch, onExit }: { idBatch: number; onExit: () => void 
             )}
             {running && !autoProcess && (
               <Button size="sm" onClick={() => processMutation.mutate()} disabled={processMutation.isPending}>
-                {processMutation.isPending ? '…' : t2('bulk.process_next', 'Process next {n}', { n: 10 })}
+                {processMutation.isPending ? '…' : t2('bulk.process_next', 'Process next {n}', { n: chunkSize })}
               </Button>
             )}
           </div>

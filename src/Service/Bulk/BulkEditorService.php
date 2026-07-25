@@ -77,22 +77,42 @@ final class BulkEditorService
         $lang = $idLang ?? (int) $ctx->language->id;
         $shop = (int) $ctx->shop->id;
 
-        $total     = count($productIds);
-        $maxAnalyze = 5000;
-        $wasCapped  = false;
-        if ($total > $maxAnalyze) {
-            $productIds = array_slice($productIds, 0, $maxAnalyze);
-            $wasCapped  = true;
-        }
+        $allIds = array_values($productIds);
+        $total  = count($allIds);
+
+        // Detailed diff rows are kept only for a sample (rendering 50k rows is pointless).
+        // The change / no-change COUNTS below cover the FULL scope, not this sample.
+        $detailLimit   = 1000;
+        $detailIds     = array_slice($allIds, 0, $detailLimit);
+        $detailSampled = $total > $detailLimit;
 
         $diffs = [];
-        foreach ($productIds as $idProduct) {
+        foreach ($detailIds as $idProduct) {
             $diffs[] = $this->diffProduct((int) $idProduct, $actions, $shop, $lang);
         }
 
+        // Sample summary — per-field length averages and collisions come from the
+        // detailed sample; the headline counts are overwritten with full-scope numbers.
         $summary = $this->buildSummary($diffs, $actions, $total);
 
-        // Second pass: tag diffs that are part of a same_value_batch collision.
+        // REAL full-scope counts (batched) — this is what "will change" must reflect.
+        $full = $this->fullScopeCounts($allIds, $actions, $shop, $lang);
+        $summary['will_change'] = $full['will_change'];
+        $summary['no_change']   = $full['no_change'];
+        $summary['with_flags']  = $full['with_flags'];
+        foreach ($full['flag_counts'] as $fk => $fv) {
+            if ($fk !== 'same_value_batch') {
+                $summary['flag_counts'][$fk] = $fv;
+            }
+        }
+        foreach ($summary['by_field'] as &$bf) {
+            if (isset($full['by_field_changes'][$bf['field']])) {
+                $bf['changes'] = $full['by_field_changes'][$bf['field']];
+            }
+        }
+        unset($bf);
+
+        // Second pass: tag sample diffs that are part of a same_value_batch collision.
         if (!empty($summary['collisions'])) {
             $collisionMap = []; // fid => [value => true]
             foreach ($summary['collisions'] as $col) {
@@ -115,12 +135,128 @@ final class BulkEditorService
         }
 
         return [
-            'summary'      => $summary,
-            'diffs'        => $diffs,
-            'total_scope'  => $total,
-            'analyzed'     => count($productIds),
-            'truncated'    => $wasCapped,
+            'summary'         => $summary,
+            'diffs'           => $diffs,
+            'total_scope'     => $total,
+            'analyzed'        => count($diffs),
+            'detail_sampled'  => $detailSampled,
+            'count_estimated' => $full['estimated'],
+            'truncated'       => $detailSampled,
         ];
+    }
+
+    /**
+     * Count, across the FULL scope, how many products will actually change vs stay
+     * unchanged. Products are loaded in batches (not one query each) so it stays fast
+     * at scale. Above a safety cap the counts are extrapolated to avoid timeouts on
+     * very large catalogs (flagged via `estimated`).
+     *
+     * @param int[] $productIds
+     * @param array<int,array<string,mixed>> $actions
+     * @return array{will_change:int,no_change:int,with_flags:int,flag_counts:array<string,int>,by_field_changes:array<string,int>,counted:int,estimated:bool}
+     */
+    private function fullScopeCounts(array $productIds, array $actions, int $idShop, int $idLang): array
+    {
+        $total      = count($productIds);
+        $safetyCap  = 100000; // count this many exactly; beyond → extrapolate
+        $ids        = $total > $safetyCap ? array_slice($productIds, 0, $safetyCap) : $productIds;
+        $estimated  = $total > $safetyCap;
+
+        $flagCounts = [
+            'truncated' => 0, 'pattern_mismatch' => 0, 'below_min_clamped' => 0,
+            'empty_old' => 0, 'conflict_gt' => 0, 'fallback_to_name' => 0,
+            'empty_source' => 0, 'same_value_batch' => 0,
+        ];
+        $byFieldChanges = [];
+        $will = 0; $no = 0; $withFlags = 0; $counted = 0;
+
+        foreach (array_chunk($ids, 2000) as $chunk) {
+            $loaded = $this->loadProductFieldsBatch($chunk, $idShop, $idLang);
+            foreach ($chunk as $pid) {
+                $pid = (int) $pid;
+                $counted++;
+                $product = $loaded[$pid] ?? null;
+                if ($product === null) { $no++; continue; }
+                $d = $this->diffProductFromData($pid, $product, $actions, $idShop, $idLang);
+                if (empty($d['changes'])) { $no++; continue; }
+                $will++;
+                if (!empty($d['has_flags'])) $withFlags++;
+                foreach ($d['changes'] as $c) {
+                    $fid = (string) $c['field'];
+                    $byFieldChanges[$fid] = ($byFieldChanges[$fid] ?? 0) + 1;
+                    foreach ((array) ($c['flags'] ?? []) as $f) {
+                        if (isset($flagCounts[$f])) $flagCounts[$f]++;
+                    }
+                }
+            }
+        }
+
+        if ($estimated && $counted > 0) {
+            $factor    = $total / $counted;
+            $will      = (int) round($will * $factor);
+            $no        = $total - $will;
+            $withFlags = (int) round($withFlags * $factor);
+            foreach ($flagCounts as $k => $v)     { $flagCounts[$k] = (int) round($v * $factor); }
+            foreach ($byFieldChanges as $k => $v) { $byFieldChanges[$k] = (int) round($v * $factor); }
+        }
+
+        return [
+            'will_change'      => $will,
+            'no_change'        => $no,
+            'with_flags'       => $withFlags,
+            'flag_counts'      => $flagCounts,
+            'by_field_changes' => $byFieldChanges,
+            'counted'          => $counted,
+            'estimated'        => $estimated,
+        ];
+    }
+
+    /**
+     * Batch version of loadProductFields — loads all given products in two queries
+     * (fields + stock) instead of two per product.
+     *
+     * @param int[] $ids
+     * @return array<int,array<string,mixed>>  keyed by id_product
+     */
+    private function loadProductFieldsBatch(array $ids, int $idShop, int $idLang): array
+    {
+        if (!$ids) return [];
+        $prefix = _DB_PREFIX_;
+        $idList = implode(',', array_map('intval', $ids));
+
+        $rows = Db::getInstance()->executeS(
+            "SELECT p.id_product, p.reference, p.ean13, p.upc, p.mpn, p.isbn,
+                    p.weight, p.width, p.height, p.depth, p.additional_shipping_cost,
+                    p.condition, p.ecotax, p.low_stock_threshold, p.low_stock_alert,
+                    p.unit_price_ratio, p.online_only, p.available_date,
+                    p.id_manufacturer, p.id_supplier, p.id_category_default,
+                    p.id_tax_rules_group,
+                    ps.active, ps.price, ps.wholesale_price, ps.available_for_order,
+                    ps.show_price, ps.visibility, ps.minimal_quantity, ps.on_sale,
+                    pl.name, pl.description, pl.description_short, pl.meta_title,
+                    pl.meta_description, pl.link_rewrite, pl.available_now, pl.available_later,
+                    pl.delivery_in_stock, pl.delivery_out_stock
+             FROM `{$prefix}product` p
+             LEFT JOIN `{$prefix}product_shop` ps
+                  ON ps.id_product = p.id_product AND ps.id_shop = {$idShop}
+             LEFT JOIN `{$prefix}product_lang` pl
+                  ON pl.id_product = p.id_product AND pl.id_shop = {$idShop} AND pl.id_lang = {$idLang}
+             WHERE p.id_product IN ({$idList})"
+        ) ?: [];
+
+        $stockRows = Db::getInstance()->executeS(
+            "SELECT id_product, quantity FROM `{$prefix}stock_available`
+             WHERE id_product IN ({$idList}) AND id_product_attribute = 0 AND id_shop = {$idShop}"
+        ) ?: [];
+        $stock = [];
+        foreach ($stockRows as $s) { $stock[(int) $s['id_product']] = (int) $s['quantity']; }
+
+        $out = [];
+        foreach ($rows as $r) {
+            $r['quantity'] = $stock[(int) $r['id_product']] ?? 0;
+            $out[(int) $r['id_product']] = $r;
+        }
+        return $out;
     }
 
     /**
@@ -323,9 +459,12 @@ final class BulkEditorService
         $allIds  = array_map('intval', $snapshot['product_ids']);
         $actions = $actionSnapshot['actions'];
 
-        $processed = $this->logProcessedIds($idBatch);
-        $pending   = array_values(array_diff($allIds, $processed));
-        $chunk     = array_slice($pending, 0, max(1, min(50, $limit)));
+        // Cursor: advance an offset into the snapshot instead of diffing the log
+        // (O(1) per chunk, and correctly advances past unchanged products too).
+        $offset  = (int) ($batch['processed_offset'] ?? 0);
+        $ceiling = 1000; // hard safety ceiling per single request
+        $size    = max(1, min($ceiling, $limit));
+        $chunk   = array_slice($allIds, $offset, $size);
 
         $changedThisTurn = 0;
         $failedThisTurn  = 0;
@@ -347,11 +486,15 @@ final class BulkEditorService
             }
         }
 
+        $newOffset = $offset + count($chunk);
         $this->masseditRepo->incrementCounters($idBatch, $changedThisTurn, $failedThisTurn);
+        $this->masseditRepo->setProcessedOffset($idBatch, $newOffset);
 
-        $remaining = count($pending) - count($chunk);
-        if ($remaining <= 0) {
-            $final = $failedThisTurn > 0 && $changedThisTurn > 0 ? 'partial' : ($failedThisTurn > 0 ? 'failed' : 'success');
+        if ($newOffset >= count($allIds)) {
+            $b = $this->masseditRepo->find($idBatch);
+            $totFailed  = (int) ($b['products_failed'] ?? 0);
+            $totChanged = (int) ($b['products_changed'] ?? 0);
+            $final = $totFailed > 0 ? ($totChanged > 0 ? 'partial' : 'failed') : 'success';
             $this->masseditRepo->updateStatus($idBatch, $final);
         }
 
@@ -453,15 +596,16 @@ final class BulkEditorService
         $action   = $batch['action_snapshot']  ? json_decode((string) $batch['action_snapshot'],  true) : [];
 
         $allIds = is_array($snapshot) ? array_map('intval', $snapshot['product_ids'] ?? []) : [];
-        $processed = $this->logProcessedIds($idBatch);
+        $total  = count($allIds);
+        $done   = min($total, (int) ($batch['processed_offset'] ?? 0));
 
         return [
             'id_batch'         => (int) $batch['id_massedit'],
             'status'           => (string) $batch['status'],
             'mode'             => (string) $batch['mode'],
-            'total'            => count($allIds),
-            'done'             => count($processed),
-            'remaining'        => max(0, count($allIds) - count($processed)),
+            'total'            => $total,
+            'done'             => $done,
+            'remaining'        => max(0, $total - $done),
             'products_changed' => (int) $batch['products_changed'],
             'products_failed'  => (int) $batch['products_failed'],
             'id_lang'          => (int) ($snapshot['id_lang'] ?? 0),
@@ -484,7 +628,7 @@ final class BulkEditorService
              WHERE id_massedit = ' . (int) $idBatch . '
              GROUP BY id_product
              ORDER BY MAX(id_log) DESC
-             LIMIT 500'
+             LIMIT 100'
         ) ?: [];
 
         return array_map(static fn (array $r) => [
@@ -506,7 +650,25 @@ final class BulkEditorService
      */
     private function diffProduct(int $idProduct, array $actions, int $idShop, int $idLang): array
     {
-        $product = $this->loadProductFields($idProduct, $idShop, $idLang);
+        return $this->diffProductFromData(
+            $idProduct,
+            $this->loadProductFields($idProduct, $idShop, $idLang),
+            $actions,
+            $idShop,
+            $idLang
+        );
+    }
+
+    /**
+     * Compute a diff row from already-loaded product field data — lets the full-scope
+     * counter analyse products in batches without a query per product.
+     *
+     * @param array<string,mixed> $product
+     * @param array<int,array<string,mixed>> $actions
+     * @return array<string,mixed>
+     */
+    private function diffProductFromData(int $idProduct, array $product, array $actions, int $idShop, int $idLang): array
+    {
         $changes = [];
 
         foreach ($actions as $action) {

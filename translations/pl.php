@@ -787,3 +787,17 @@ $_MODULE['<{smartbulk}prestashop>smartbulk_04211bd9ce88ddf97b4f3d7f575ff225'] = 
 $_MODULE['<{smartbulk}prestashop>smartbulk_fe434dcc19aea29e5bac8ea26b33ca89'] = 'Każdy pasujący produkt dostanie {feature} = {value}.';
 $_MODULE['<{smartbulk}prestashop>smartbulk_02173abb23f8d1261336c13db6990669'] = 'Zostanie utworzona własna wartość cechy.';
 $_MODULE['<{smartbulk}prestashop>smartbulk_5744ec3e5250e10233dadb015f7782ea'] = 'PrestaShop pozwala mieć kilka wartości tej samej cechy — istniejące wartości pozostaną nietknięte.';
+$_MODULE['<{smartbulk}prestashop>smartbulk_5019c2692a24497cb2e0b0f8885a0ceb'] = 'Przeanalizowano';
+$_MODULE['<{smartbulk}prestashop>smartbulk_9ff90afa0be4b49abe63644d0f452fd8'] = 'Zmieni się (w próbce)';
+$_MODULE['<{smartbulk}prestashop>smartbulk_e87660d5316fd6362fae196ae257d89b'] = 'Bez zmian (w próbce)';
+$_MODULE['<{smartbulk}prestashop>smartbulk_9d27825753e9e68157daaa0e8229fefc'] = 'Zastosowanie przetworzy wszystkie {total} produktów - podgląd przeanalizował próbkę {n}';
+$_MODULE['<{smartbulk}prestashop>smartbulk_04275f392b65c01c5a659ccb28a3680e'] = 'wszystkie {total} zostaną przetworzone - przeanalizowano {n}';
+$_MODULE['<{smartbulk}prestashop>smartbulk_be2cd862d40e26c57c8bc0c1f3176f0a'] = 'Liczby obejmują wszystkie {total} produktów - lista poniżej pokazuje pierwsze {n} wierszy.';
+$_MODULE['<{smartbulk}prestashop>smartbulk_d4529a86bf9d859d3714947048549110'] = '▶ Wznów';
+$_MODULE['<{smartbulk}prestashop>smartbulk_69b2a84b705547906a990cecbe4846f9'] = 'Przetwarzanie masowe';
+$_MODULE['<{smartbulk}prestashop>smartbulk_c9798b60b0d2a3df65503ecd635e7646'] = 'Ile produktów przetwarza się na jedno żądanie przy edycji masowej. Więcej = szybciej, ale pojedyncze żądanie trwa dłużej.';
+$_MODULE['<{smartbulk}prestashop>smartbulk_2da641fc2c03bfcdba583c0761ded32c'] = 'Produktów na paczkę';
+$_MODULE['<{smartbulk}prestashop>smartbulk_acfa1782b81aa5ecbad17c7a44835711'] = 'Pokazuję pierwsze {n} z {total} wierszy zmian — pełne sumy w podsumowaniu powyżej.';
+$_MODULE['<{smartbulk}prestashop>smartbulk_0512d085cef02e2c26b3bea541db9edc'] = 'Zastosowane zmiany';
+$_MODULE['<{smartbulk}prestashop>smartbulk_5a9d18bb87ff12835dc844883c5c3ebe'] = 'zmian';
+$_MODULE['<{smartbulk}prestashop>smartbulk_4bcc5e3b4e234849671e9d18cb069aa8'] = 'błędów';

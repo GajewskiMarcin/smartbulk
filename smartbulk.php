@@ -54,7 +54,7 @@ class SmartBulk extends Module
     {
         $this->name = self::MODULE_NAME;
         $this->tab = 'administration';
-        $this->version = '1.0.0';
+        $this->version = '1.0.1';
         $this->author = 'marcingajewski.pl';
         $this->need_instance = 0;
         $this->bootstrap = true;
@@ -310,6 +310,7 @@ class SmartBulk extends Module
             'bulk.warn_copyfrom_no_source' => $this->l('⚠ A Copy-from action is missing a source field', 'smartbulk'),
             'bulk.handoff_status' => $this->l('{n} products (handoff) · {actions} active action(s)', 'smartbulk'),
             'bulk.preview_status' => $this->l('{willChange} of {total} will change', 'smartbulk'),
+            'bulk.preview_status_sampled' => $this->l('all {total} will be processed - {n} analyzed', 'smartbulk'),
             'bulk.preview_attention' => $this->l('{n} need attention', 'smartbulk'),
             'bulk.stop_batch' => $this->l('■ Stop batch', 'smartbulk'),
             'bulk.stopping' => $this->l('Stopping…', 'smartbulk'),
@@ -342,6 +343,7 @@ class SmartBulk extends Module
             'bulk.section_actions_subtitle' => $this->l('Add one entry per field. Empty value → skipped.', 'smartbulk'),
             'bulk.section_review_title' => $this->l('Step 3 · Review changes', 'smartbulk'),
             'bulk.section_review_subtitle' => $this->l('{willChange} of {total} products will change', 'smartbulk'),
+            'bulk.review_subtitle_sampled' => $this->l('Apply will process all {total} products - preview analyzed a {n} sample', 'smartbulk'),
             'bulk.scope_label' => $this->l('Scope:', 'smartbulk'),
             'bulk.scope_single' => $this->l('Current shop only', 'smartbulk'),
             'bulk.scope_group' => $this->l('Current shop group', 'smartbulk'),
@@ -433,6 +435,14 @@ class SmartBulk extends Module
             'history.title' => $this->l('History', 'smartbulk'),
             'history.refresh' => $this->l('↻ Refresh', 'smartbulk'),
             'history.refreshing' => $this->l('⟳ Refreshing…', 'smartbulk'),
+            'history.resume' => $this->l('▶ Resume', 'smartbulk'),
+            'history.applied_changes' => $this->l('Applied changes', 'smartbulk'),
+            'history.changes_word' => $this->l('changes', 'smartbulk'),
+            'history.failures_word' => $this->l('failures', 'smartbulk'),
+            'history.showing_first' => $this->l('Showing first {n} of {total} change rows — see the summary above for full totals.', 'smartbulk'),
+            'settings.bulk_title' => $this->l('Bulk processing', 'smartbulk'),
+            'settings.bulk_subtitle' => $this->l('How many products are processed per request when applying a bulk edit. Higher = faster, but each request takes longer.', 'smartbulk'),
+            'settings.bulk_chunk' => $this->l('Products per batch', 'smartbulk'),
             'history.empty' => $this->l('No operations recorded yet.', 'smartbulk'),
             'history.no_match' => $this->l('No rows match the current filters.', 'smartbulk'),
             'history.subtitle' => $this->l('{n} operation{plural} recorded', 'smartbulk'),
@@ -826,7 +836,7 @@ class SmartBulk extends Module
             'preview.flag.copy_from_invalid' => $this->l('Invalid source field', 'smartbulk'),
             'preview.flag_label' => $this->l('Flag', 'smartbulk'),
             'preview.field_label' => $this->l('Field', 'smartbulk'),
-            'preview.truncated_warn' => $this->l('⚠ Scope contains {total} products — analyzed first {n} for preview. Apply will process all of them.', 'smartbulk'),
+            'preview.truncated_warn' => $this->l('Counts cover all {total} products - the list below shows the first {n} rows.', 'smartbulk'),
             'preview.tab_attention' => $this->l('Needs attention', 'smartbulk'),
             'preview.tab_all' => $this->l('Browse all', 'smartbulk'),
             'preview.tab_summary' => $this->l('Per-field summary', 'smartbulk'),
@@ -841,6 +851,9 @@ class SmartBulk extends Module
             'preview.card_in_scope' => $this->l('In scope', 'smartbulk'),
             'preview.card_will_change' => $this->l('Will change', 'smartbulk'),
             'preview.card_no_change' => $this->l('No change', 'smartbulk'),
+            'preview.card_analyzed' => $this->l('Analyzed', 'smartbulk'),
+            'preview.card_will_change_sampled' => $this->l('Will change (sample)', 'smartbulk'),
+            'preview.card_no_change_sampled' => $this->l('No change (sample)', 'smartbulk'),
             'preview.card_with_warnings' => $this->l('With warnings', 'smartbulk'),
             'preview.filter_by_warning' => $this->l('Filter by warning:', 'smartbulk'),
             'preview.filter_by_field' => $this->l('Filter by field:', 'smartbulk'),

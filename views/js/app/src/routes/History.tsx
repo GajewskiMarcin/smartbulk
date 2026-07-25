@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import PageHead from '../components/PageHead';
 import PageCard from '../components/PageCard';
@@ -16,6 +17,7 @@ import {
   type BatchStatus,
   type BatchSummary,
   type BulkLogRow,
+  type LogSummary,
 } from '../lib/history';
 import { bulkApi } from '../lib/bulk';
 import { t, t2 } from '../lib/i18n';
@@ -26,6 +28,7 @@ export default function History() {
   const toast = useToast();
   const confirm = useConfirm();
   const qc = useQueryClient();
+  const navigate = useNavigate();
 
   const [page, setPage] = useState(0);
   const [kind, setKind] = useState<'all' | 'bulk' | 'ai'>('all');
@@ -161,6 +164,7 @@ export default function History() {
                     expanded={expanded === b.id_batch}
                     onToggleExpand={() => setExpanded(expanded === b.id_batch ? null : b.id_batch)}
                     onUndo={() => handleUndo(b)}
+                    onResume={() => navigate('/bulk-editor', { state: { resumeBatchId: b.id_batch } })}
                     undoing={undoMutation.isPending && undoMutation.variables === b.id_batch}
                   />
                 ))}
@@ -178,14 +182,17 @@ function BatchRow({
   expanded,
   onToggleExpand,
   onUndo,
+  onResume,
   undoing,
 }: {
   batch: BatchSummary;
   expanded: boolean;
   onToggleExpand: () => void;
   onUndo: () => void;
+  onResume: () => void;
   undoing: boolean;
 }) {
+  const canResume = batch.status === 'running' || batch.status === 'pending';
   // Undo drives off the massedit_log — works for both bulk batches and AI
   // batches where at least one accepted run wrote a field change.
   const canUndo =
@@ -231,6 +238,11 @@ function BatchRow({
           {batch.employee_name || '—'}
         </td>
         <td className="px-2 py-2 align-top text-right whitespace-nowrap">
+          {canResume && (
+            <Button size="sm" variant="primary" onClick={onResume}>
+              {t('history.resume', '▶ Resume')}
+            </Button>
+          )}
           {canUndo && (
             <Button size="sm" variant="destructive" onClick={onUndo} disabled={undoing}>
               {undoing ? t('history.undoing', 'Undoing…') : t('history.undo_batch', '↶ Undo')}
@@ -267,17 +279,58 @@ function BatchDetailView({ idBatch }: { idBatch: number }) {
   const b = query.data;
   if (!b) return null;
 
+  const sampled = (s?: LogSummary, shown?: number) =>
+    !!s && typeof shown === 'number' && s.total_rows > shown;
+
   return (
     <div className="flex flex-col gap-3">
-      {b.kind === 'bulk_edit' && b.logs && <BulkLogTable rows={b.logs} />}
+      {b.kind === 'bulk_edit' && b.log_summary && <LogSummaryView summary={b.log_summary} />}
+      {b.kind === 'bulk_edit' && b.logs && b.logs.length > 0 && (
+        <>
+          {sampled(b.log_summary, b.logs.length) && (
+            <div className="text-[11px] text-muted-foreground">
+              {t2('history.showing_first', 'Showing first {n} of {total} change rows — see the summary above for full totals.', { n: b.logs.length, total: b.log_summary!.total_rows })}
+            </div>
+          )}
+          <BulkLogTable rows={b.logs} />
+        </>
+      )}
       {b.kind === 'ai_batch'  && b.runs && <AiRunsTable  rows={b.runs} />}
       {b.kind === 'ai_batch'  && b.logs && b.logs.length > 0 && (
         <>
           <div className="text-[11px] uppercase tracking-wide text-muted-foreground font-semibold pt-2">
-            Applied changes ({b.logs.length})
+            {t('history.applied_changes', 'Applied changes')}
           </div>
+          {b.log_summary && <LogSummaryView summary={b.log_summary} />}
+          {sampled(b.log_summary, b.logs.length) && (
+            <div className="text-[11px] text-muted-foreground">
+              {t2('history.showing_first', 'Showing first {n} of {total} change rows — see the summary above for full totals.', { n: b.logs.length, total: b.log_summary!.total_rows })}
+            </div>
+          )}
           <BulkLogTable rows={b.logs} />
         </>
+      )}
+    </div>
+  );
+}
+
+function LogSummaryView({ summary }: { summary: LogSummary }) {
+  return (
+    <div className="border border-border rounded-md bg-white p-3">
+      <div className="text-[13px] mb-2">
+        <span className="text-green-700 font-semibold">{summary.total_changed.toLocaleString()}</span> {t('history.changes_word', 'changes')}
+        {summary.total_failed > 0 && (
+          <> · <span className="text-red-700 font-semibold">{summary.total_failed.toLocaleString()}</span> {t('history.failures_word', 'failures')}</>
+        )}
+      </div>
+      {summary.by_field.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {summary.by_field.map((f) => (
+            <span key={f.field} className="px-2 py-1 text-[11px] rounded-full border border-border bg-muted/50 text-slate-700">
+              {f.field} · {f.changed.toLocaleString()}{f.failed > 0 ? ` (${f.failed} failed)` : ''}
+            </span>
+          ))}
+        </div>
       )}
     </div>
   );
