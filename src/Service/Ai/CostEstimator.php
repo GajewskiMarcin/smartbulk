@@ -123,11 +123,12 @@ final class CostEstimator
 
     private function pickAnyProduct(int $idShop): ?int
     {
+        // No explicit LIMIT — PrestaShop's getValue() appends "LIMIT 1" itself;
+        // adding our own produces "LIMIT 1 LIMIT 1" (SQL syntax error on MariaDB).
         $id = Db::getInstance()->getValue(
             'SELECT id_product FROM `' . _DB_PREFIX_ . 'product_shop`
              WHERE id_shop = ' . (int) $idShop . ' AND active = 1
-             ORDER BY id_product ASC
-             LIMIT 1'
+             ORDER BY id_product ASC'
         );
         return $id !== false && $id !== null ? (int) $id : null;
     }

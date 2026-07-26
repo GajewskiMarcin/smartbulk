@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.2] — 2026-07-26
+
+### Fixed
+- **Content Health → list affected products** produced an SQL syntax error — the display `LEFT JOIN`s were emitted *after* the `WHERE`. `fromForProblem()` now returns FROM and WHERE separately and `listProducts()` assembles them in valid order (FROM → JOINs → WHERE). (Thanks to the community reviewer on PS 9.1.4 / MariaDB.)
+- **AI cost estimate / sample-product pick** produced `LIMIT 1 LIMIT 1` — the query carried an explicit `LIMIT 1` while PrestaShop's `getValue()` appends its own. Removed the explicit `LIMIT`.
+- **Meta title / any AI task** raised `Undefined property: Product::$meta_keywords` on PS 8.x/9.x (the field was removed from the Product model). Reads are now guarded with `property_exists()` and degrade to an empty `{focus_keyphrase}`.
+
+### Changed
+- Fallback autoloader now also resolves the legacy admin controllers (`controllers/admin/`), so a fresh clone / release zip works without running `composer dump-autoload`.
+
 ## [1.0.1] — 2026-07-25
 
 ### Added

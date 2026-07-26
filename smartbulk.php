@@ -20,16 +20,28 @@ if (is_file($composerAutoload)) {
     require_once $composerAutoload;
 }
 
-// Manual fallback autoloader for PSR-4 (in case vendor/ is absent in the published zip)
+// Manual fallback autoloader — makes the module work without running
+// `composer dump-autoload` on a fresh clone / release zip (vendor/ absent).
+// Covers both the PSR-4 `SmartBulk\*` classes in src/ AND the legacy global-namespace
+// admin controllers in controllers/admin/ (the composer.json classmap entry).
+// Prepended so it is available before the Symfony container compiles module services.
 spl_autoload_register(static function (string $class): void {
-    if (strncmp($class, 'SmartBulk\\', 10) !== 0) {
+    // PSR-4: SmartBulk\* -> src/
+    if (strncmp($class, 'SmartBulk\\', 10) === 0) {
+        $path = __DIR__ . '/src/' . str_replace('\\', '/', substr($class, 10)) . '.php';
+        if (is_file($path)) {
+            require_once $path;
+        }
         return;
     }
-    $path = __DIR__ . '/src/' . str_replace('\\', '/', substr($class, 10)) . '.php';
-    if (is_file($path)) {
-        require_once $path;
+    // Classmap fallback: legacy admin controllers (global namespace).
+    if (strncmp($class, 'AdminSmartBulk', 14) === 0 || strncmp($class, 'AdminSecretSauce', 16) === 0) {
+        $path = __DIR__ . '/controllers/admin/' . $class . '.php';
+        if (is_file($path)) {
+            require_once $path;
+        }
     }
-});
+}, true, true);
 
 class SmartBulk extends Module
 {
@@ -54,7 +66,7 @@ class SmartBulk extends Module
     {
         $this->name = self::MODULE_NAME;
         $this->tab = 'administration';
-        $this->version = '1.0.1';
+        $this->version = '1.0.2';
         $this->author = 'marcingajewski.pl';
         $this->need_instance = 0;
         $this->bootstrap = true;

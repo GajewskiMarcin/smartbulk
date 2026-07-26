@@ -52,7 +52,9 @@ final class ProductContextLoader
         $longDesc  = $this->stripTags((string) $product->description);
         $metaTitle = $this->str($product->meta_title);
         $metaDesc  = $this->str($product->meta_description);
-        $metaKw    = $this->str($product->meta_keywords);
+        // meta_keywords was removed from the Product model in PS 8.x/9.x — reading it
+        // directly triggers "Undefined property". Guard so it degrades to empty.
+        $metaKw    = property_exists($product, 'meta_keywords') ? $this->str($product->meta_keywords) : '';
         $reference = (string) ($product->reference ?? '');
         $price     = $this->formatPrice((float) $product->price);
 

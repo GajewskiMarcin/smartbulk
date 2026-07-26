@@ -331,7 +331,7 @@ final class ContentHealthService
         $offset = max(0, (int) ($opts['offset'] ?? 0));
         $search = trim((string) ($opts['search'] ?? ''));
 
-        [$from, $selectId, $searchAlias] = $this->fromForProblem($problemId, $shop, $lang);
+        [$from, $where, $selectId, $searchAlias] = $this->fromForProblem($problemId, $shop, $lang);
         if ($from === null) {
             return ['items' => [], 'total' => 0];
         }
@@ -354,7 +354,7 @@ final class ContentHealthService
         ";
 
         $total = (int) Db::getInstance()->getValue(
-            "SELECT COUNT({$selectId}) {$from} {$joinsForDisplay} {$searchSql}"
+            "SELECT COUNT({$selectId}) {$from} {$joinsForDisplay} WHERE {$where} {$searchSql}"
         );
 
         if ($total === 0) return ['items' => [], 'total' => 0];
@@ -366,7 +366,8 @@ final class ContentHealthService
                     pl.name       AS name,
                     p.reference   AS reference,
                     {$previewExpr} AS preview
-             {$from} {$joinsForDisplay} {$searchSql}
+             {$from} {$joinsForDisplay}
+             WHERE {$where} {$searchSql}
              GROUP BY {$selectId}
              ORDER BY {$selectId} ASC
              LIMIT {$offset}, {$limit}"
@@ -486,38 +487,42 @@ final class ContentHealthService
     }
 
     /**
-     * Builds the FROM clause for a problem. Returns [from, selectId, alias] or
-     * [null, ...] if the problem id is unknown.
-     * The "alias" is the table alias whose id_product is canonical for this query
-     * (used by search/count to avoid ambiguity across joins).
+     * Builds the FROM clause for a problem. Returns [from, where, selectId, alias] or
+     * [null, ...] if the problem id is unknown. The "from" no longer contains the
+     * WHERE — callers append their own display JOINs and then the WHERE, so the SQL
+     * stays valid (FROM → JOINs → WHERE).
+     * The "alias" is the table alias whose id_product is canonical for this query.
      *
-     * @return array{0:?string,1:string,2:string}
+     * @return array{0:?string,1:?string,2:string,3:string}
      */
     private function fromForProblem(string $id, int $shop, int $lang): array
     {
         $prefix = _DB_PREFIX_;
         $where = $this->whereForProblem($id);
-        if ($where === null) return [null, '', ''];
+        if ($where === null) {
+            return [null, null, '', ''];
+        }
 
         if ($id === 'missing_main_image') {
             return [
                 "FROM `{$prefix}product_shop` ps
                  LEFT JOIN `{$prefix}image_shop` imgs
-                     ON imgs.id_product = ps.id_product AND imgs.id_shop = ps.id_shop
-                 WHERE ps.id_shop = {$shop} AND ps.active = 1 AND imgs.id_image IS NULL",
+                   ON imgs.id_product = ps.id_product AND imgs.id_shop = ps.id_shop",
+                "ps.id_shop = {$shop} AND ps.active = 1 AND imgs.id_image IS NULL",
                 'ps.id_product',
                 'ps',
             ];
         }
+
         if ($id === 'missing_alt_text') {
             return [
                 "FROM `{$prefix}image_shop` imgs
                  JOIN `{$prefix}image` i ON i.id_image = imgs.id_image
                  JOIN `{$prefix}product_shop` ps ON ps.id_product = i.id_product AND ps.id_shop = {$shop}
                  LEFT JOIN `{$prefix}image_lang` il
-                     ON il.id_image = i.id_image AND il.id_lang = {$lang}
-                 WHERE imgs.id_shop = {$shop} AND ps.active = 1
-                   AND (il.legend IS NULL OR TRIM(il.legend) = '')",
+                   ON il.id_image = i.id_image AND il.id_lang = {$lang}",
+                "imgs.id_shop = {$shop} AND ps.active = 1
+                 AND (il.legend IS NULL OR TRIM(il.legend) = '')",
                 'i.id_product',
                 'i',
             ];
@@ -525,8 +530,8 @@ final class ContentHealthService
 
         // Text/code problems share the same base.
         return [
-            "FROM `{$prefix}product_shop` ps
-             WHERE ps.id_shop = {$shop} AND ps.active = 1 AND ({$where})",
+            "FROM `{$prefix}product_shop` ps",
+            "ps.id_shop = {$shop} AND ps.active = 1 AND ({$where})",
             'ps.id_product',
             'ps',
         ];
