@@ -54,7 +54,7 @@ final class HistoryService
 
         $rows = Db::getInstance()->executeS(
             "SELECT b.id_massedit, b.id_shop, b.status, b.mode, b.products_matched, b.products_changed, b.products_failed,
-                    b.started_at, b.finished_at, b.id_employee,
+                    b.processed_offset, b.started_at, b.finished_at, b.id_employee,
                     b.action_snapshot, b.segment_snapshot,
                     e.firstname AS emp_firstname, e.lastname AS emp_lastname, e.email AS emp_email,
                     EXISTS(SELECT 1 FROM `{$prefix}smartbulk_massedit_log` l
@@ -142,6 +142,7 @@ final class HistoryService
             'products_matched' => (int) ($r['products_matched'] ?? 0),
             'products_changed' => (int) ($r['products_changed'] ?? 0),
             'products_failed'  => (int) ($r['products_failed'] ?? 0),
+            'remaining'        => max(0, (int) ($r['products_matched'] ?? 0) - (int) ($r['processed_offset'] ?? 0)),
             'started_at'       => (string) ($r['started_at'] ?? ''),
             'finished_at'      => $r['finished_at'] ?? null,
             'employee_id'      => $r['id_employee'] !== null ? (int) $r['id_employee'] : null,
@@ -248,7 +249,7 @@ final class HistoryService
                     pl.name AS product_name
              FROM `{$prefix}smartbulk_ai_run` r
              LEFT JOIN `{$prefix}product_lang` pl
-                 ON pl.id_product = r.id_product AND pl.id_lang = r.id_lang
+                 ON pl.id_product = r.id_product AND pl.id_lang = r.id_lang AND pl.id_shop = r.id_shop
              WHERE r.id_massedit = " . (int) $idBatch . "
              GROUP BY r.id_run
              ORDER BY r.id_run ASC

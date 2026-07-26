@@ -498,10 +498,19 @@ function BatchRunner({ idBatch, onExit }: { idBatch: number; onExit: () => void 
     onError: (e: Error) => toast.show(e.message || 'Cancel failed', 'error'),
   });
 
+  const resumeMutation = useMutation({
+    mutationFn: () => bulkApi.resume(idBatch),
+    onSuccess: () => {
+      setAutoProcess(true);
+      qc.invalidateQueries({ queryKey: ['bulk', 'batch', idBatch] });
+    },
+    onError: (e: Error) => toast.show(e.message || 'Resume failed', 'error'),
+  });
+
   useEffect(() => {
     if (!autoProcess) return;
     const d = batchQuery.data;
-    if (!d || d.remaining <= 0 || d.status === 'undone') return;
+    if (!d || d.remaining <= 0 || (d.status !== 'pending' && d.status !== 'running')) return;
     if (processMutation.isPending || processingRef.current) return;
     processingRef.current = true;
     processMutation.mutate(undefined, { onSettled: () => { processingRef.current = false; } });
@@ -511,7 +520,7 @@ function BatchRunner({ idBatch, onExit }: { idBatch: number; onExit: () => void 
   if (!batch) return <div className="text-muted-foreground">Loading batch…</div>;
 
   const progressPct = batch.total === 0 ? 0 : Math.round((batch.done / batch.total) * 100);
-  const running = batch.remaining > 0 && batch.status !== 'undone';
+  const running = (batch.status === 'pending' || batch.status === 'running') && batch.remaining > 0;
 
   const handleUndo = async () => {
     const ok = await confirm({
@@ -558,6 +567,11 @@ function BatchRunner({ idBatch, onExit }: { idBatch: number; onExit: () => void 
             {running && (
               <Button onClick={handleCancel} variant="destructive" disabled={cancelMutation.isPending}>
                 {cancelMutation.isPending ? t('bulk.stopping', 'Stopping…') : t('bulk.stop_batch', '■ Stop batch')}
+              </Button>
+            )}
+            {!running && batch.remaining > 0 && batch.status !== 'undone' && (
+              <Button onClick={() => resumeMutation.mutate()} variant="primary" disabled={resumeMutation.isPending}>
+                {resumeMutation.isPending ? t('bulk.resuming', 'Resuming…') : t('bulk.resume_batch', '▶ Resume')}
               </Button>
             )}
             {batch.status !== 'undone' && batch.done > 0 && (

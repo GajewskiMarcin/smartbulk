@@ -192,7 +192,9 @@ function BatchRow({
   onResume: () => void;
   undoing: boolean;
 }) {
-  const canResume = batch.status === 'running' || batch.status === 'pending';
+  // Resumable = a bulk batch with work left (pending/running or stopped partial/failed).
+  // AI batches are excluded: the resume route opens the bulk runner.
+  const canResume = batch.kind === 'bulk_edit' && batch.status !== 'undone' && batch.remaining > 0;
   // Undo drives off the massedit_log — works for both bulk batches and AI
   // batches where at least one accepted run wrote a field change.
   const canUndo =

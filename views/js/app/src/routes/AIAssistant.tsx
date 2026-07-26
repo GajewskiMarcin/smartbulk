@@ -360,7 +360,14 @@ function BatchRunner({ idBatch, onExit }: { idBatch: number; onExit: () => void 
 
   const processMutation = useMutation({
     mutationFn: () => aiApi.processNext(idBatch, chunkSize),
-    onSuccess: () => qc.invalidateQueries({ queryKey: ['ai', 'batch', idBatch] }),
+    onSuccess: (batch) => {
+      // Budget / rate limit hit → the batch paused itself; stop hammering and tell the user.
+      if (batch?.paused) {
+        setAutoProcess(false);
+        toast.show(batch.pause_reason || 'Paused — AI limit reached. Try again later.', 'info');
+      }
+      qc.invalidateQueries({ queryKey: ['ai', 'batch', idBatch] });
+    },
     onError: (e: Error) => toast.show(e.message || 'Processing failed', 'error'),
   });
 
@@ -368,7 +375,7 @@ function BatchRunner({ idBatch, onExit }: { idBatch: number; onExit: () => void 
   useEffect(() => {
     if (!autoProcess) return;
     const d = batchQuery.data;
-    if (!d || d.remaining <= 0) return;
+    if (!d || d.remaining <= 0 || (d.status !== 'pending' && d.status !== 'running')) return;
     if (processMutation.isPending || processingRef.current) return;
 
     processingRef.current = true;
@@ -383,7 +390,7 @@ function BatchRunner({ idBatch, onExit }: { idBatch: number; onExit: () => void 
   }
 
   const progressPct = batch.total === 0 ? 0 : Math.round((batch.done / batch.total) * 100);
-  const running = batch.remaining > 0;
+  const running = (batch.status === 'pending' || batch.status === 'running') && batch.remaining > 0;
 
   const handleAccept = async (idRun: number) => {
     setAcceptingId(idRun);

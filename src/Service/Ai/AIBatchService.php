@@ -101,6 +101,10 @@ final class AIBatchService
             throw new InvalidArgumentException("Batch {$idBatch} not found");
         }
 
+        // Don't resume a finalised/cancelled batch (guards against late process-next calls).
+        if (in_array((string) $batch['status'], ['success', 'failed', 'partial', 'undone'], true)) {
+            return $this->getStatus($idBatch);
+        }
         if ($batch['status'] === 'pending') {
             $this->masseditRepo->updateStatus($idBatch, 'running');
         }
@@ -117,6 +121,18 @@ final class AIBatchService
         $targetField = isset($snapshot['target_field']) && $snapshot['target_field'] !== null ? (string) $snapshot['target_field'] : null;
         $targetLang  = isset($snapshot['target_lang'])  && $snapshot['target_lang']  !== null ? (int)    $snapshot['target_lang']  : null;
         $allIds      = array_map('intval', $snapshot['product_ids']);
+
+        // Budget / rate-limit gate: if currently blocked, PAUSE the batch instead of
+        // throwing per-product forever (products with no run row never leave "pending",
+        // so remaining never drops and the client would hammer process-next endlessly).
+        $reason = $this->ai->limitReason((int) $batch['id_shop']);
+        if ($reason !== null) {
+            $status = $this->getStatus($idBatch);
+            $status['paused']         = true;
+            $status['pause_reason']   = $reason;
+            $status['runs_this_turn'] = [];
+            return $status;
+        }
 
         $processed = $this->masseditRepo->processedProductIds($idBatch);
         $pending   = array_values(array_diff($allIds, $processed));
@@ -145,7 +161,11 @@ final class AIBatchService
 
         $remaining = count($pending) - count($chunk);
         if ($remaining <= 0) {
-            $finalStatus = $failed > 0 && $done > 0 ? 'partial' : ($failed > 0 ? 'failed' : 'success');
+            // Derive final status from CUMULATIVE counters, not just this turn's.
+            $b = $this->masseditRepo->find($idBatch);
+            $totFailed = (int) ($b['products_failed'] ?? 0);
+            $totDone   = (int) ($b['products_changed'] ?? 0);
+            $finalStatus = $totFailed > 0 ? ($totDone > 0 ? 'partial' : 'failed') : 'success';
             $this->masseditRepo->updateStatus($idBatch, $finalStatus);
         }
 
@@ -209,6 +229,26 @@ final class AIBatchService
      *
      * @return array{accepted:int,failed:int,errors:array<int,string>,remaining:int}
      */
+    /** Resume a stopped/paused AI batch — flips status to 'running' so the runner continues. */
+    public function resume(int $idBatch): array
+    {
+        $batch = $this->masseditRepo->find($idBatch);
+        if ($batch === null) {
+            throw new InvalidArgumentException("Batch {$idBatch} not found");
+        }
+        if ((string) $batch['status'] === 'undone') {
+            throw new InvalidArgumentException('An undone batch cannot be resumed');
+        }
+        $snapshot = $batch['segment_snapshot'] ? json_decode((string) $batch['segment_snapshot'], true) : [];
+        $total = is_array($snapshot) ? count($snapshot['product_ids'] ?? []) : 0;
+        $done  = count($this->masseditRepo->processedProductIds($idBatch));
+        if ($done >= $total) {
+            throw new InvalidArgumentException('Nothing left to resume');
+        }
+        $this->masseditRepo->updateStatus($idBatch, 'running');
+        return $this->getStatus($idBatch);
+    }
+
     public function acceptAll(int $idBatch, int $limit = 50): array
     {
         $limit = max(1, min(200, $limit));

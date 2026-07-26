@@ -148,6 +148,14 @@ export const aiApi = {
         return r.batch;
       }),
 
+  resumeBatch: (idBatch: number) =>
+    api
+      .post<{ ok: boolean; batch: BatchStatus; error?: string }>(`${AI_BASE}/batch/${idBatch}/resume`, {})
+      .then((r) => {
+        if (!r.ok || !r.batch) throw new Error(r.error || 'Resume failed');
+        return r.batch;
+      }),
+
   processNext: (idBatch: number, limit = 5) =>
     api
       .post<{ ok: boolean; batch: BatchStatus & { runs_this_turn?: BatchRun[] }; error?: string }>(
@@ -211,6 +219,8 @@ export interface BatchStatus {
   started_at: string;
   finished_at: string | null;
   runs?: BatchRun[];
+  paused?: boolean;        // set by process-next when a budget/rate limit blocks the batch
+  pause_reason?: string;
 }
 
 export const productsApi = {

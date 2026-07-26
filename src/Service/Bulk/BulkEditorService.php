@@ -442,6 +442,11 @@ final class BulkEditorService
             throw new InvalidArgumentException("Batch {$idBatch} not found");
         }
 
+        // Don't resume a batch that was already finalised or cancelled (cancel() sets
+        // partial/failed). Without this a stray/late process-next keeps writing after "Stop".
+        if (in_array((string) $batch['status'], ['success', 'failed', 'partial', 'undone'], true)) {
+            return $this->getStatus($idBatch);
+        }
         if ($batch['status'] === 'pending') {
             $this->masseditRepo->updateStatus($idBatch, 'running');
         }
@@ -534,6 +539,10 @@ final class BulkEditorService
             try {
                 if ((string) $row['field'] === '_feature') {
                     $this->undoFeature((int) $row['id_product'], (string) $row['new_value']);
+                } elseif ((string) $row['field'] === '_alt_text') {
+                    $this->undoAltText((int) $row['id_product'], $row['id_lang'] !== null ? (int) $row['id_lang'] : 0, (string) $row['old_value']);
+                } elseif ((string) $row['field'] === '_tags') {
+                    $this->undoTags((int) $row['id_product'], $row['id_lang'] !== null ? (int) $row['id_lang'] : 0, (string) $row['old_value']);
                 } else {
                     $this->writeField(
                         (int) $row['id_product'],
@@ -583,6 +592,29 @@ final class BulkEditorService
         // Use 'partial' if any products were already changed, else 'failed'.
         $finalStatus = (int) $batch['products_changed'] > 0 ? 'partial' : 'failed';
         $this->masseditRepo->updateStatus($idBatch, $finalStatus);
+        return $this->getStatus($idBatch);
+    }
+
+    /**
+     * Resume a stopped/interrupted batch — flips it back to 'running' so the runner
+     * (or processNext) continues from processed_offset. Only valid when work remains.
+     */
+    public function resume(int $idBatch): array
+    {
+        $batch = $this->masseditRepo->find($idBatch);
+        if ($batch === null) {
+            throw new InvalidArgumentException("Batch {$idBatch} not found");
+        }
+        if ((string) $batch['status'] === 'undone') {
+            throw new InvalidArgumentException('An undone batch cannot be resumed');
+        }
+        $snapshot = $batch['segment_snapshot'] ? json_decode((string) $batch['segment_snapshot'], true) : [];
+        $total = is_array($snapshot) ? count($snapshot['product_ids'] ?? []) : 0;
+        $done  = (int) ($batch['processed_offset'] ?? 0);
+        if ($done >= $total) {
+            throw new InvalidArgumentException('Nothing left to resume');
+        }
+        $this->masseditRepo->updateStatus($idBatch, 'running');
         return $this->getStatus($idBatch);
     }
 
@@ -904,7 +936,12 @@ final class BulkEditorService
             $oldValue = $product[$fieldId] ?? null;
 
             if ($op === 'ai_generate') {
-                $newValue = $this->runAiGenerate($fieldId, $action, $def, $idProduct, $idLang, $idBatch);
+                if ($isDryRun) {
+                    // Dry-run must not spend money — never call the provider here.
+                    $newValue = '[AI would generate on apply]';
+                } else {
+                    $newValue = $this->runAiGenerate($fieldId, $action, $def, $idProduct, $idLang, $idBatch);
+                }
             } else {
                 $newValue = $this->computeNewValue($fieldId, $op, $oldValue, $action, $def, $product);
             }
@@ -927,6 +964,17 @@ final class BulkEditorService
                 'new'   => $this->valueForDisplay($newValue),
             ];
             $changed++;
+        }
+
+        // Bump date_upd once per product (not per field) so "last modified" and any
+        // downstream cache/indexing see the change. Skipped in dry-run.
+        if (!$isDryRun && $changed > 0) {
+            $p = _DB_PREFIX_;
+            Db::getInstance()->execute("UPDATE `{$p}product` SET date_upd = NOW() WHERE id_product = " . (int) $idProduct);
+            Db::getInstance()->execute("UPDATE `{$p}product_shop` SET date_upd = NOW() WHERE id_product = " . (int) $idProduct . " AND id_shop = " . (int) $idShop);
+            // Invalidate the stale Content Health cache for this product (bulk bypasses the
+            // actionProductUpdate hook that would normally refresh it) — forces a re-score.
+            Db::getInstance()->execute("DELETE FROM `{$p}smartbulk_health_product` WHERE id_product = " . (int) $idProduct . " AND id_shop = " . (int) $idShop);
         }
 
         return [
@@ -1012,7 +1060,16 @@ final class BulkEditorService
     {
         $prefix = _DB_PREFIX_;
         $storage = FieldDefinitions::storageTable($field);
-        $escValue = $this->escapeValue($value);
+        // Keep friendly URLs unique per language — bulk bypasses the ObjectModel uniqueness
+        // check, so mass-generating link_rewrite could otherwise create duplicate URLs.
+        if ($field === 'link_rewrite' && $idLang !== null && trim((string) $value) !== '') {
+            $value = $this->uniqueLinkRewrite((string) $value, $idProduct, (int) $idLang, $idShop);
+        }
+        // A cleared DATE column must be NULL, not '' — '' is an invalid DATE and is
+        // rejected under STRICT_TRANS_TABLES (MariaDB default), causing a phantom "change".
+        $escValue = ($field === 'available_date' && trim((string) $value) === '')
+            ? 'NULL'
+            : $this->escapeValue($value);
 
         switch ($storage) {
             case 'product_lang': {
@@ -1086,7 +1143,7 @@ final class BulkEditorService
             'id_product'  => (int) $idProduct,
             'id_lang'     => $idLang,
             'field'       => pSQL($field),
-            'old_value'   => pSQL($this->reverseWrap($oldValue), true),
+            'old_value'   => $oldValue === null ? null : pSQL($this->reverseWrap($oldValue), true),
             'new_value'   => pSQL($this->reverseWrap($newValue), true),
             'status'      => 'changed',
             'changed_at'  => date('Y-m-d H:i:s'),
@@ -1143,10 +1200,10 @@ final class BulkEditorService
         return (string) $value;
     }
 
-    /** @return mixed */
+    /** @return mixed  Preserves NULL (a column that was NULL restores to NULL, not ''). */
     private function reverseUnwrap(?string $raw)
     {
-        return $raw ?? '';
+        return $raw;
     }
 
     // =====================================================================
@@ -1220,7 +1277,14 @@ final class BulkEditorService
             $count = $this->countFeatureValuesOnProduct($idProduct, $idFeature);
             if ($count === 0) return null;
             $featureName = $this->getFeatureName($idFeature, $idLang);
+            $removed = [];
             if (!$isDryRun) {
+                // Snapshot the values before deleting so undo can restore them.
+                $rows = Db::getInstance()->executeS(
+                    "SELECT id_feature_value FROM `{$prefix}feature_product`
+                     WHERE id_product = " . (int) $idProduct . " AND id_feature = " . $idFeature
+                ) ?: [];
+                foreach ($rows as $r) $removed[] = (int) $r['id_feature_value'];
                 Db::getInstance()->execute(
                     "DELETE FROM `{$prefix}feature_product`
                      WHERE id_product = " . (int) $idProduct . "
@@ -1229,7 +1293,7 @@ final class BulkEditorService
             }
             return [
                 'old' => $featureName . ' (' . $count . ' values)',
-                'new' => json_encode(['feature' => $idFeature, 'cleared' => true]) ?: '',
+                'new' => json_encode(['feature' => $idFeature, 'cleared' => true, 'values' => $removed]) ?: '',
             ];
         }
 
@@ -1291,7 +1355,16 @@ final class BulkEditorService
         $idFeature = (int) $data['feature'];
 
         if (!empty($data['cleared'])) {
-            // 'clear' — we wiped multiple rows and didn't snapshot them; nothing to restore.
+            // Restore the feature values that 'clear' removed (snapshotted in new_value).
+            foreach ((array) ($data['values'] ?? []) as $idValue) {
+                $idValue = (int) $idValue;
+                if ($idValue > 0) {
+                    Db::getInstance()->execute(
+                        "INSERT INTO `{$prefix}feature_product` (id_product, id_feature, id_feature_value)
+                         VALUES (" . (int) $idProduct . ", " . $idFeature . ", " . $idValue . ")"
+                    );
+                }
+            }
             return;
         }
 
@@ -1314,6 +1387,71 @@ final class BulkEditorService
                 Db::getInstance()->execute("DELETE FROM `{$prefix}feature_value` WHERE id_feature_value = " . $idValue . " AND custom = 1");
             }
         }
+    }
+
+    /** Restore the image_lang.legend snapshot captured before an alt_text accept. */
+    private function undoAltText(int $idProduct, int $idLang, string $snapshotJson): void
+    {
+        $data = json_decode($snapshotJson, true);
+        $map  = is_array($data) ? ($data['old_map'] ?? []) : [];
+        $prefix = _DB_PREFIX_;
+        foreach ($map as $idImage => $oldLegend) {
+            $idImage = (int) $idImage;
+            if ($oldLegend === null) {
+                // No row existed before the accept — remove the one we created.
+                Db::getInstance()->execute(
+                    "DELETE FROM `{$prefix}image_lang` WHERE id_image = {$idImage} AND id_lang = " . (int) $idLang
+                );
+            } else {
+                $esc = pSQL((string) $oldLegend, true);
+                Db::getInstance()->execute(
+                    "UPDATE `{$prefix}image_lang` SET legend = '{$esc}' WHERE id_image = {$idImage} AND id_lang = " . (int) $idLang
+                );
+            }
+        }
+    }
+
+    /** Restore the product_tag snapshot captured before a tagging accept. */
+    private function undoTags(int $idProduct, int $idLang, string $snapshotJson): void
+    {
+        $data = json_decode($snapshotJson, true);
+        $old  = is_array($data) ? ($data['old_tags'] ?? []) : [];
+        $prefix = _DB_PREFIX_;
+        Db::getInstance()->execute(
+            "DELETE FROM `{$prefix}product_tag` WHERE id_product = " . (int) $idProduct . " AND id_lang = " . (int) $idLang
+        );
+        foreach ($old as $idTag) {
+            $idTag = (int) $idTag;
+            if ($idTag > 0) {
+                Db::getInstance()->execute(
+                    "INSERT INTO `{$prefix}product_tag` (id_product, id_tag, id_lang)
+                     VALUES (" . (int) $idProduct . ", {$idTag}, " . (int) $idLang . ")"
+                );
+            }
+        }
+    }
+
+    /** Ensure a link_rewrite is unique for (lang, shop); append -{id_product} on clash. */
+    private function uniqueLinkRewrite(string $slug, int $idProduct, int $idLang, int $idShop): string
+    {
+        $candidate = $slug;
+        $suffix = 0;
+        while ($this->linkRewriteClashes($candidate, $idProduct, $idLang, $idShop)) {
+            $suffix++;
+            $candidate = $slug . '-' . $idProduct . ($suffix > 1 ? '-' . $suffix : '');
+            if ($suffix > 20) break; // safety
+        }
+        return $candidate;
+    }
+
+    private function linkRewriteClashes(string $slug, int $idProduct, int $idLang, int $idShop): bool
+    {
+        $esc = pSQL($slug, true);
+        return (int) Db::getInstance()->getValue(
+            "SELECT COUNT(*) FROM `" . _DB_PREFIX_ . "product_lang`
+             WHERE link_rewrite = '{$esc}' AND id_lang = " . (int) $idLang . "
+               AND id_shop = " . (int) $idShop . " AND id_product <> " . (int) $idProduct
+        ) > 0;
     }
 
     private function createCustomFeatureValue(int $idFeature, string $value): int
@@ -1362,7 +1500,9 @@ final class BulkEditorService
     /** @param mixed $value */
     private function escapeValue($value): string
     {
-        if ($value === null) return "''";
+        // NULL → SQL NULL (only reached when undo restores a column that was NULL before;
+        // apply never passes null, so NOT NULL columns are never hit with this).
+        if ($value === null) return 'NULL';
         if (is_bool($value)) return $value ? '1' : '0';
         if (is_int($value)) return (string) $value;
         if (is_float($value)) return (string) $value;

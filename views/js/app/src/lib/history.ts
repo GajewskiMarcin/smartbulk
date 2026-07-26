@@ -14,6 +14,7 @@ export interface BatchSummary {
   products_matched: number;
   products_changed: number;
   products_failed: number;
+  remaining: number;
   started_at: string;
   finished_at: string | null;
   employee_id: number | null;

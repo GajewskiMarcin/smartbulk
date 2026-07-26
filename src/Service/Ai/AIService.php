@@ -263,6 +263,36 @@ final class AIService
             );
         }
 
+        // Media tasks (alt_text / tagging) write to image_lang / product_tag, not a product
+        // field. Log them under a marker field so they show in History and can be undone —
+        // undo() restores the snapshot carried in old_value.
+        if (in_array((string) $prompt['task_type'], ['alt_text', 'tagging'], true)) {
+            if ($idBatchForLog === 0) {
+                $idBatchForLog = $this->createWrapperBatch(
+                    (int) $run['id_shop'],
+                    (int) $run['id_product'],
+                    (string) $prompt['task_type'],
+                    (string) $prompt['name'],
+                    (int) $prompt['id_prompt'],
+                    (int) $run['id_prompt_version']
+                );
+                $this->masseditRepo->incrementCounters($idBatchForLog, 1, 0);
+                $this->masseditRepo->updateStatus($idBatchForLog, 'success');
+            }
+            $field    = (string) $prompt['task_type'] === 'alt_text' ? '_alt_text' : '_tags';
+            $snapshot = (string) $prompt['task_type'] === 'alt_text'
+                ? ['old_map'  => $applied['old_map']  ?? []]
+                : ['old_tags' => $applied['old_tags'] ?? []];
+            $this->logFieldChange(
+                $idBatchForLog,
+                (int) $run['id_product'],
+                (int) $run['id_lang'],
+                $field,
+                json_encode($snapshot) ?: '',
+                (string) $run['output']
+            );
+        }
+
         return [
             'id_run'   => $idRun,
             'status'   => 'accepted',
@@ -321,6 +351,21 @@ final class AIService
         }
         $this->runRepo->updateStatus($idRun, 'rejected');
         return ['id_run' => $idRun, 'status' => 'rejected'];
+    }
+
+    /**
+     * Non-throwing check used by the batch runner to PAUSE (not loop) when a limit
+     * is hit. Returns a human message when blocked, or null when a run may proceed.
+     */
+    public function limitReason(int $idShop): ?string
+    {
+        try {
+            $this->checkBudget($idShop);
+            $this->checkRateLimit($idShop);
+        } catch (\RuntimeException $e) {
+            return $e->getMessage();
+        }
+        return null;
     }
 
     private function checkBudget(int $idShop): void
@@ -444,8 +489,13 @@ final class AIService
 
         $updated = 0;
         $safe = pSQL($output, true);
+        $oldMap = []; // id_image => previous legend (null when no row existed) — for undo
         foreach ($rows as $r) {
             $idImage = (int) $r['id_image'];
+            $prev = \Db::getInstance()->getValue(
+                "SELECT legend FROM `{$prefix}image_lang` WHERE id_image = {$idImage} AND id_lang = " . (int) $idLang
+            );
+            $oldMap[$idImage] = ($prev === false || $prev === null) ? null : (string) $prev;
             // INSERT ... ON DUPLICATE KEY UPDATE — image_lang row may not exist for this lang yet.
             $ok = \Db::getInstance()->execute(
                 "INSERT INTO `{$prefix}image_lang` (id_image, id_lang, legend) VALUES
@@ -455,7 +505,7 @@ final class AIService
             if ($ok) $updated++;
         }
 
-        return ['task' => 'alt_text', 'images_updated' => $updated, 'lang' => $idLang, 'new' => $output];
+        return ['task' => 'alt_text', 'images_updated' => $updated, 'lang' => $idLang, 'new' => $output, 'old_map' => $oldMap];
     }
 
     /**
@@ -473,6 +523,14 @@ final class AIService
 
         // Replace semantics — wipe existing tags for this product+lang first.
         $prefix = _DB_PREFIX_;
+        // Snapshot current tag ids first so undo can restore them.
+        $oldTags = array_map(
+            static fn ($r) => (int) $r['id_tag'],
+            \Db::getInstance()->executeS(
+                "SELECT id_tag FROM `{$prefix}product_tag`
+                 WHERE id_product = " . (int) $idProduct . " AND id_lang = " . (int) $idLang
+            ) ?: []
+        );
         \Db::getInstance()->execute(
             "DELETE FROM `{$prefix}product_tag`
              WHERE id_product = " . (int) $idProduct . "
@@ -481,7 +539,7 @@ final class AIService
 
         \Tag::addTags($idLang, (int) $idProduct, implode(',', $tags), ',');
 
-        return ['task' => 'tagging', 'tags_set' => count($tags), 'lang' => $idLang, 'replaced' => true, 'value' => $tags];
+        return ['task' => 'tagging', 'tags_set' => count($tags), 'lang' => $idLang, 'replaced' => true, 'value' => $tags, 'old_tags' => $oldTags];
     }
 
     /** @return string[] */

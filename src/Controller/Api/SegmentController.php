@@ -41,24 +41,36 @@ final class SegmentController extends PrestaShopAdminController
     #[AdminSecurity("is_granted('read', 'AdminSmartBulk')")]
     public function countAction(Request $request, SegmentService $segments): JsonResponse
     {
-        $spec = $this->jsonBody($request);
-        return new JsonResponse(['ok' => true, 'count' => $segments->count($spec)]);
+        try {
+            $spec = $this->jsonBody($request);
+            return new JsonResponse(['ok' => true, 'count' => $segments->count($spec)]);
+        } catch (\Throwable $e) {
+            return new JsonResponse(['ok' => false, 'error' => $e->getMessage()], 500);
+        }
     }
 
     #[AdminSecurity("is_granted('read', 'AdminSmartBulk')")]
     public function sampleAction(Request $request, SegmentService $segments): JsonResponse
     {
-        $spec  = $this->jsonBody($request);
-        $limit = max(1, min(50, (int) ($spec['limit'] ?? 10)));
-        return new JsonResponse(['ok' => true, 'products' => $segments->sample($spec, $limit)]);
+        try {
+            $spec  = $this->jsonBody($request);
+            $limit = max(1, min(50, (int) ($spec['limit'] ?? 10)));
+            return new JsonResponse(['ok' => true, 'products' => $segments->sample($spec, $limit)]);
+        } catch (\Throwable $e) {
+            return new JsonResponse(['ok' => false, 'error' => $e->getMessage()], 500);
+        }
     }
 
     #[AdminSecurity("is_granted('read', 'AdminSmartBulk')")]
     public function productIdsAction(Request $request, SegmentService $segments): JsonResponse
     {
-        $spec  = $this->jsonBody($request);
-        $limit = isset($spec['limit']) ? (int) $spec['limit'] : null;
-        return new JsonResponse(['ok' => true, 'product_ids' => $segments->listProductIds($spec, null, null, $limit)]);
+        try {
+            $spec  = $this->jsonBody($request);
+            $limit = isset($spec['limit']) ? (int) $spec['limit'] : null;
+            return new JsonResponse(['ok' => true, 'product_ids' => $segments->listProductIds($spec, null, null, $limit)]);
+        } catch (\Throwable $e) {
+            return new JsonResponse(['ok' => false, 'error' => $e->getMessage()], 500);
+        }
     }
 
     // ---- Saved segments CRUD ----

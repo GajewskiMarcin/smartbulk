@@ -36,11 +36,12 @@ final class ConfigPortabilityService
      */
     private const PORTABLE_SETTINGS = [
         'ai_provider',
-        'claude_model',
-        'openai_model',
         'daily_budget',
+        'rate_limit',
+        'mask_prices',
         'brand_tone',
-        'rate_limit_per_minute',
+        'retention_days',
+        'bulk_chunk',
     ];
 
     public function __construct(

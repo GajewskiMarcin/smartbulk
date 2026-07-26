@@ -112,7 +112,6 @@ final class FieldCatalog
             // SEO
             self::field('missing_meta_title',       $l('Missing meta title'),         'content_gaps', 'gap', self::GAP_OPS, ['lang' => true]),
             self::field('missing_meta_description', $l('Missing meta description'),   'content_gaps', 'gap', self::GAP_OPS, ['lang' => true]),
-            self::field('missing_focus_keyphrase',  $l('Missing focus keyphrase'),    'content_gaps', 'gap', self::GAP_OPS, ['lang' => true]),
             self::field('meta_title_length',        $l('Meta title length'),          'content_gaps', 'int', self::INT_OPS, ['lang' => true]),
             self::field('meta_description_length',  $l('Meta description length'),    'content_gaps', 'int', self::INT_OPS, ['lang' => true]),
             // Descriptions
@@ -144,7 +143,6 @@ final class FieldCatalog
             self::field('never_sold',               $l('Never sold'),                 'behavior', 'gap', self::GAP_OPS),
             self::field('sold_in_last_days',        $l('Sold in last N days'),        'behavior', 'int', ['eq','gte','lte','between']),
             self::field('not_sold_in_last_days',    $l('Not sold in last N days'),    'behavior', 'int', ['eq','gte','lte','between']),
-            self::field('out_of_stock_days',        $l('Out of stock for ≥ N days'),  'behavior', 'int', ['gte','gt','eq']),
             self::field('sales_rank_top',           $l('Sales rank top N'),           'behavior', 'int', ['lte','lt']),
             self::field('sales_rank_bottom',        $l('Sales rank bottom N'),        'behavior', 'int', ['lte','lt']),
 

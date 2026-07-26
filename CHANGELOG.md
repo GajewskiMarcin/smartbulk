@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.3] — 2026-07-26
+
+A full audit pass (prompted by the community bug report) fixed further issues, plus a UX addition.
+
+### Fixed
+- **Content Health / segment filters — PS 9 fatals removed:** the "Missing focus keyphrase" gap and `meta_keywords` column (dropped in PS 8/9), the `short_desc_length` filter (was mapping to a non-existent `product.short_desc` instead of `product_lang.description_short`), and the "Out of stock for N days" filter (referenced a non-existent `stock_available.update_date`). Segment endpoints now wrap errors instead of 500-ing.
+- **AI batch could loop forever** when a daily-budget or per-minute rate limit was hit (rate/budget-blocked products never got a run row, so the queue never drained). It now pauses with a message.
+- **Dry-run bulk edits** containing an AI-generate action no longer call the paid AI provider.
+- **Settings page no longer 500s** if `_COOKIE_KEY_` changes (site move / DB copy) — an undecryptable key degrades to empty so it can be re-entered.
+- **"Stop batch" is now enforced** (a stopped batch no longer keeps writing); its final status and undo behave correctly.
+- **Undo** restores previously-NULL values as NULL (not `''`); AI **alt-text / tagging** accepts are now undoable and show in History; a feature "clear" is reversible again.
+- Clearing a date field writes NULL (was `''` → rejected under STRICT); config export/import no longer drops settings (key-name mismatch); AI batch final status uses cumulative counts; History AI-run product names bind the shop; LIKE searches escape `%`/`_`; scheduler heartbeat throttles via Configuration (not `$_SESSION`); bulk edits bump `date_upd`, keep `link_rewrite` unique per language, and invalidate the Content Health cache for changed products.
+
+### Added
+- **Resume** button in the batch runner (and History) for stopped/interrupted bulk batches — continues from where it left off (cursor-based).
+
 ## [1.0.2] — 2026-07-26
 
 ### Fixed

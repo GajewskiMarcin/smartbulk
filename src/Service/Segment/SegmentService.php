@@ -248,9 +248,6 @@ final class SegmentService
                 case 'missing_meta_description':
                     $parts[] = "(pl.meta_description IS NULL OR pl.meta_description = '')";
                     break;
-                case 'missing_focus_keyphrase':
-                    $parts[] = "(pl.meta_keywords IS NULL OR pl.meta_keywords = '')";
-                    break;
                 case 'missing_short_desc':
                     $parts[] = "(pl.description_short IS NULL OR pl.description_short = '')";
                     break;

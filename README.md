@@ -2,7 +2,7 @@
 
 > Advanced bulk product management for PrestaShop, with an AI assistant.
 
-**Status:** v1.0.2
+**Status:** v1.0.3
 **Author:** [marcingajewski.pl](https://marcingajewski.pl)
 **License:** [AFL-3.0](LICENSE.md)
 **PrestaShop:** 8.x and 9.x

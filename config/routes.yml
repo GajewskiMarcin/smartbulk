@@ -301,6 +301,14 @@ smartbulk_api_ai_batch_reject_all:
         _controller: 'SmartBulk\Controller\Api\AiController::rejectAllBatchAction'
         _legacy_controller: AdminSmartBulk
 
+smartbulk_api_ai_batch_resume:
+    path: /smartbulk/api/ai/batch/{id}/resume
+    methods: [POST]
+    requirements: { id: '\d+' }
+    defaults:
+        _controller: 'SmartBulk\Controller\Api\AiController::resumeBatchAction'
+        _legacy_controller: AdminSmartBulk
+
 # --- Bulk Editor (deterministic) -----------------------------------
 smartbulk_api_bulk_fields:
     path: /smartbulk/api/bulk/fields
@@ -375,6 +383,14 @@ smartbulk_api_bulk_batch_cancel:
     requirements: { id: '\d+' }
     defaults:
         _controller: 'SmartBulk\Controller\Api\BulkController::cancelAction'
+        _legacy_controller: AdminSmartBulk
+
+smartbulk_api_bulk_batch_resume:
+    path: /smartbulk/api/bulk/batch/{id}/resume
+    methods: [POST]
+    requirements: { id: '\d+' }
+    defaults:
+        _controller: 'SmartBulk\Controller\Api\BulkController::resumeAction'
         _legacy_controller: AdminSmartBulk
 
 # --- Content Health ------------------------------------------------

@@ -253,6 +253,14 @@ export const bulkApi = {
         if (!r.ok || !r.batch) throw new Error(r.error || 'Cancel failed');
         return r.batch;
       }),
+
+  resume: (id: number) =>
+    api
+      .post<{ ok: boolean; batch: BulkBatchStatus; error?: string }>(`${BASE}/batch/${id}/resume`, {})
+      .then((r) => {
+        if (!r.ok || !r.batch) throw new Error(r.error || 'Resume failed');
+        return r.batch;
+      }),
 };
 
 export function operatorLabel(op: Operator): string {

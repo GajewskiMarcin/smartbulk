@@ -801,3 +801,4 @@ $_MODULE['<{smartbulk}prestashop>smartbulk_acfa1782b81aa5ecbad17c7a44835711'] = 
 $_MODULE['<{smartbulk}prestashop>smartbulk_0512d085cef02e2c26b3bea541db9edc'] = 'Zastosowane zmiany';
 $_MODULE['<{smartbulk}prestashop>smartbulk_5a9d18bb87ff12835dc844883c5c3ebe'] = 'zmian';
 $_MODULE['<{smartbulk}prestashop>smartbulk_4bcc5e3b4e234849671e9d18cb069aa8'] = 'błędów';
+$_MODULE['<{smartbulk}prestashop>smartbulk_cb13500cd4baae527d60c6298221330c'] = 'Wznawianie…';

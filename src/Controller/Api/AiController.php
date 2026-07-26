@@ -216,6 +216,18 @@ final class AiController extends PrestaShopAdminController
         }
     }
 
+    #[AdminSecurity("is_granted('update', 'AdminSmartBulk')")]
+    public function resumeBatchAction(int $id, AIBatchService $batch): JsonResponse
+    {
+        try {
+            return new JsonResponse(['ok' => true, 'batch' => $batch->resume($id)]);
+        } catch (InvalidArgumentException $e) {
+            return new JsonResponse(['ok' => false, 'error' => $e->getMessage()], 422);
+        } catch (\Throwable $e) {
+            return new JsonResponse(['ok' => false, 'error' => $e->getMessage()], 500);
+        }
+    }
+
     /** @return array<string,mixed> */
     private function jsonBody(Request $request): array
     {

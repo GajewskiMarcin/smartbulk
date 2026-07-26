@@ -129,7 +129,14 @@ final class SettingsService
         if ($raw === '') {
             return '';
         }
-        return $this->vault->decrypt($raw);
+        try {
+            return $this->vault->decrypt($raw);
+        } catch (\Throwable $e) {
+            // Corrupted value or a rotated _COOKIE_KEY_ (site move / DB copy) — degrade to
+            // "no key" instead of throwing, so the Settings page still loads and the user
+            // can re-enter the key rather than being locked out with a 500.
+            return '';
+        }
     }
 
     public function hasSecret(string $key): bool

@@ -66,7 +66,7 @@ class SmartBulk extends Module
     {
         $this->name = self::MODULE_NAME;
         $this->tab = 'administration';
-        $this->version = '1.0.2';
+        $this->version = '1.0.3';
         $this->author = 'marcingajewski.pl';
         $this->need_instance = 0;
         $this->bootstrap = true;
@@ -325,6 +325,8 @@ class SmartBulk extends Module
             'bulk.preview_status_sampled' => $this->l('all {total} will be processed - {n} analyzed', 'smartbulk'),
             'bulk.preview_attention' => $this->l('{n} need attention', 'smartbulk'),
             'bulk.stop_batch' => $this->l('■ Stop batch', 'smartbulk'),
+            'bulk.resume_batch' => $this->l('▶ Resume', 'smartbulk'),
+            'bulk.resuming' => $this->l('Resuming…', 'smartbulk'),
             'bulk.stopping' => $this->l('Stopping…', 'smartbulk'),
             'bulk.undo_batch' => $this->l('↶ Undo batch', 'smartbulk'),
             'bulk.undoing' => $this->l('Undoing…', 'smartbulk'),
@@ -949,10 +951,13 @@ class SmartBulk extends Module
         // throttled per session so it doesn't hammer the DB. External cron
         // is still recommended for unattended scheduling — see Scheduler page.
         try {
+            // Throttle via Configuration, not $_SESSION — under the PS9 Symfony BO the
+            // native session store isn't $_SESSION, so the throttle would never persist
+            // and runDue() would fire on every page load.
             $now = time();
-            $last = isset($_SESSION['smartbulk_heartbeat_at']) ? (int) $_SESSION['smartbulk_heartbeat_at'] : 0;
+            $last = (int) \Configuration::getGlobalValue('SMARTBULK_HEARTBEAT_AT');
             if ($now - $last >= 60) {
-                $_SESSION['smartbulk_heartbeat_at'] = $now;
+                \Configuration::updateGlobalValue('SMARTBULK_HEARTBEAT_AT', (string) $now);
                 /** @var \SmartBulk\Service\Schedule\ScheduleService|null $svc */
                 $svc = $this->get('SmartBulk\Service\Schedule\ScheduleService');
                 if ($svc !== null) $svc->runDue();

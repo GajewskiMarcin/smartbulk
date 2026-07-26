@@ -90,6 +90,7 @@ final class ConditionTreeCompiler
         // --- Numeric operators on *_length gap-int fields (e.g. meta_title_length) ---
         if ($def['value_type'] === 'int' && str_ends_with($id, '_length')) {
             $base = substr($id, 0, -7); // meta_title_length → meta_title
+            if ($base === 'short_desc') $base = 'description_short'; // real product_lang column
             $col = $this->resolveColumn($base, $idLang, $idShop);
             $lenExpr = "COALESCE(CHAR_LENGTH({$col}), 0)";
             return $this->numericExpr($lenExpr, $op, $value, $value2);
@@ -109,7 +110,7 @@ final class ConditionTreeCompiler
         // --- Numeric ops on product / product_shop / stock columns ---
         if ($def['value_type'] === 'float' || $def['value_type'] === 'int') {
             // Special cases for behavior-int fields
-            if (in_array($id, ['sold_in_last_days', 'not_sold_in_last_days', 'out_of_stock_days', 'sales_rank_top', 'sales_rank_bottom'], true)) {
+            if (in_array($id, ['sold_in_last_days', 'not_sold_in_last_days', 'sales_rank_top', 'sales_rank_bottom'], true)) {
                 return $this->behaviorExpr($id, $op, $value, $value2);
             }
             $col = $this->resolveColumn($id, $idLang, $idShop);
@@ -156,7 +157,7 @@ final class ConditionTreeCompiler
         // product_lang
         if (in_array($id, [
             'name', 'description', 'description_short',
-            'meta_title', 'meta_description', 'meta_keywords', 'link_rewrite',
+            'meta_title', 'meta_description', 'link_rewrite',
             'available_now', 'available_later',
             'delivery_in_stock', 'delivery_out_stock',
         ], true)) {
@@ -184,13 +185,15 @@ final class ConditionTreeCompiler
     {
         $val = (string) ($value ?? '');
         $esc = pSQL($val);
+        // For LIKE, make user-typed % and _ literal (otherwise "50%" matches everything).
+        $escLike = str_replace(['%', '_'], ['\\%', '\\_'], $esc);
         switch ($op) {
             case 'equals':        return "{$col} = '{$esc}'";
             case 'not_equals':    return "{$col} <> '{$esc}'";
-            case 'contains':      return "{$col} LIKE '%{$esc}%'";
-            case 'not_contains':  return "{$col} NOT LIKE '%{$esc}%'";
-            case 'starts_with':   return "{$col} LIKE '{$esc}%'";
-            case 'ends_with':     return "{$col} LIKE '%{$esc}'";
+            case 'contains':      return "{$col} LIKE '%{$escLike}%'";
+            case 'not_contains':  return "{$col} NOT LIKE '%{$escLike}%'";
+            case 'starts_with':   return "{$col} LIKE '{$escLike}%'";
+            case 'ends_with':     return "{$col} LIKE '%{$escLike}'";
             case 'matches_regex': return "{$col} REGEXP '{$esc}'";
             case 'is_empty':      return "({$col} IS NULL OR {$col} = '')";
             case 'is_not_empty':  return "({$col} IS NOT NULL AND {$col} <> '')";
@@ -383,8 +386,6 @@ final class ConditionTreeCompiler
                 return "(pl.meta_title IS NULL OR pl.meta_title = '')";
             case 'missing_meta_description':
                 return "(pl.meta_description IS NULL OR pl.meta_description = '')";
-            case 'missing_focus_keyphrase':
-                return "(pl.meta_keywords IS NULL OR pl.meta_keywords = '')";
             case 'missing_short_desc':
                 return "(pl.description_short IS NULL OR pl.description_short = '')";
             case 'missing_description':
@@ -449,11 +450,6 @@ final class ConditionTreeCompiler
                                     JOIN `{$prefix}orders` o ON o.id_order = od.id_order
                                     WHERE od.product_id = p.id_product
                                       AND o.date_add >= DATE_SUB(NOW(), INTERVAL {$n} DAY))";
-            case 'out_of_stock_days':
-                // Approximation: product currently has 0 stock AND date_upd of stock < N days ago
-                return "(COALESCE(sa.quantity, 0) <= 0
-                         AND sa.update_date IS NOT NULL
-                         AND sa.update_date < DATE_SUB(NOW(), INTERVAL {$n} DAY))";
             case 'sales_rank_top':
             case 'sales_rank_bottom': {
                 // Aggregate units sold, rank desc/asc within window of all products

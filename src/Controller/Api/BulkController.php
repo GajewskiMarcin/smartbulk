@@ -182,6 +182,18 @@ final class BulkController extends PrestaShopAdminController
     }
 
     #[AdminSecurity("is_granted('update', 'AdminSmartBulk')")]
+    public function resumeAction(int $id, BulkEditorService $service): JsonResponse
+    {
+        try {
+            return new JsonResponse(['ok' => true, 'batch' => $service->resume($id)]);
+        } catch (InvalidArgumentException $e) {
+            return new JsonResponse(['ok' => false, 'error' => $e->getMessage()], 422);
+        } catch (\Throwable $e) {
+            return new JsonResponse(['ok' => false, 'error' => $e->getMessage()], 500);
+        }
+    }
+
+    #[AdminSecurity("is_granted('update', 'AdminSmartBulk')")]
     public function undoAction(int $id, BulkEditorService $service): JsonResponse
     {
         try {
