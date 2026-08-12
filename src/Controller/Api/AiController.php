@@ -12,8 +12,7 @@ declare(strict_types=1);
 namespace SmartBulk\Controller\Api;
 
 use InvalidArgumentException;
-use PrestaShopBundle\Controller\Admin\PrestaShopAdminController;
-use PrestaShopBundle\Security\Attribute\AdminSecurity;
+use SmartBulk\Controller\CompatAdminController;
 use SmartBulk\Service\Ai\AIBatchService;
 use SmartBulk\Service\Ai\AIService;
 use SmartBulk\Service\Ai\ClaudeProvider;
@@ -22,11 +21,11 @@ use SmartBulk\Service\Segment\SegmentService;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 
-final class AiController extends PrestaShopAdminController
+final class AiController extends CompatAdminController
 {
-    #[AdminSecurity("is_granted('update', 'AdminSmartBulk')")]
     public function generateAction(Request $request, AIService $service): JsonResponse
     {
+        $this->assertAccess('update');
         $payload = $this->jsonBody($request);
         $idPrompt   = (int) ($payload['id_prompt']  ?? 0);
         $idProduct  = (int) ($payload['id_product'] ?? 0);
@@ -49,9 +48,9 @@ final class AiController extends PrestaShopAdminController
         }
     }
 
-    #[AdminSecurity("is_granted('update', 'AdminSmartBulk')")]
     public function acceptAction(int $id, AIService $service): JsonResponse
     {
+        $this->assertAccess('update');
         try {
             return new JsonResponse(['ok' => true, 'run' => $service->accept($id)]);
         } catch (InvalidArgumentException $e) {
@@ -61,9 +60,9 @@ final class AiController extends PrestaShopAdminController
         }
     }
 
-    #[AdminSecurity("is_granted('read', 'AdminSmartBulk')")]
     public function estimateAction(Request $request, \SmartBulk\Service\Ai\CostEstimator $estimator): JsonResponse
     {
+        $this->assertAccess('read');
         $payload = $this->jsonBody($request);
         $idPrompt    = (int) ($payload['id_prompt']    ?? 0);
         $idVersion   = isset($payload['id_version']) ? (int) $payload['id_version'] : null;
@@ -82,9 +81,9 @@ final class AiController extends PrestaShopAdminController
         }
     }
 
-    #[AdminSecurity("is_granted('update', 'AdminSmartBulk')")]
     public function rejectAction(int $id, AIService $service): JsonResponse
     {
+        $this->assertAccess('update');
         try {
             return new JsonResponse(['ok' => true, 'run' => $service->reject($id)]);
         } catch (InvalidArgumentException $e) {
@@ -95,12 +94,12 @@ final class AiController extends PrestaShopAdminController
     /**
      * Test connection to a provider — generates a 1-token response to verify the key works.
      */
-    #[AdminSecurity("is_granted('read', 'AdminSmartBulk')")]
     public function testConnectionAction(
         Request $request,
         ClaudeProvider $claude,
         OpenAIProvider $openai
     ): JsonResponse {
+        $this->assertAccess('read');
         $provider = (string) $request->query->get('provider', 'claude');
 
         try {
@@ -126,12 +125,12 @@ final class AiController extends PrestaShopAdminController
     // Batch endpoints
     // ================================================================
 
-    #[AdminSecurity("is_granted('update', 'AdminSmartBulk')")]
     public function createBatchAction(
         Request $request,
         AIBatchService $batch,
         SegmentService $segments
     ): JsonResponse {
+        $this->assertAccess('update');
         $payload = $this->jsonBody($request);
         $idPrompt    = (int) ($payload['id_prompt']  ?? 0);
         $idVersion   = isset($payload['id_version']) ? (int) $payload['id_version'] : null;
@@ -166,9 +165,9 @@ final class AiController extends PrestaShopAdminController
         }
     }
 
-    #[AdminSecurity("is_granted('update', 'AdminSmartBulk')")]
     public function processNextBatchAction(int $id, Request $request, AIBatchService $batch): JsonResponse
     {
+        $this->assertAccess('update');
         $limit = max(1, min(20, (int) $request->query->get('limit', 5)));
         try {
             return new JsonResponse(['ok' => true, 'batch' => $batch->processNext($id, $limit)]);
@@ -179,9 +178,9 @@ final class AiController extends PrestaShopAdminController
         }
     }
 
-    #[AdminSecurity("is_granted('read', 'AdminSmartBulk')")]
     public function getBatchAction(int $id, Request $request, AIBatchService $batch): JsonResponse
     {
+        $this->assertAccess('read');
         try {
             $status = $batch->getStatus($id);
             $includeRuns = $request->query->get('include_runs') === '1';
@@ -194,9 +193,9 @@ final class AiController extends PrestaShopAdminController
         }
     }
 
-    #[AdminSecurity("is_granted('update', 'AdminSmartBulk')")]
     public function acceptAllBatchAction(int $id, Request $request, AIBatchService $batch): JsonResponse
     {
+        $this->assertAccess('update');
         try {
             $limit = (int) $request->query->get('limit', '50');
             return new JsonResponse(['ok' => true, 'result' => $batch->acceptAll($id, $limit)]);
@@ -205,9 +204,9 @@ final class AiController extends PrestaShopAdminController
         }
     }
 
-    #[AdminSecurity("is_granted('update', 'AdminSmartBulk')")]
     public function rejectAllBatchAction(int $id, Request $request, AIBatchService $batch): JsonResponse
     {
+        $this->assertAccess('update');
         try {
             $limit = (int) $request->query->get('limit', '100');
             return new JsonResponse(['ok' => true, 'result' => $batch->rejectAll($id, $limit)]);
@@ -216,9 +215,9 @@ final class AiController extends PrestaShopAdminController
         }
     }
 
-    #[AdminSecurity("is_granted('update', 'AdminSmartBulk')")]
     public function resumeBatchAction(int $id, AIBatchService $batch): JsonResponse
     {
+        $this->assertAccess('update');
         try {
             return new JsonResponse(['ok' => true, 'batch' => $batch->resume($id)]);
         } catch (InvalidArgumentException $e) {

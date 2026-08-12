@@ -11,16 +11,15 @@ declare(strict_types=1);
 
 namespace SmartBulk\Controller\Api;
 
-use PrestaShopBundle\Controller\Admin\PrestaShopAdminController;
-use PrestaShopBundle\Security\Attribute\AdminSecurity;
+use SmartBulk\Controller\CompatAdminController;
 use SmartBulk\Service\Dashboard\DashboardService;
 use Symfony\Component\HttpFoundation\JsonResponse;
 
-final class DashboardController extends PrestaShopAdminController
+final class DashboardController extends CompatAdminController
 {
-    #[AdminSecurity("is_granted('read', 'AdminSmartBulk')")]
     public function getAction(DashboardService $service): JsonResponse
     {
+        $this->assertAccess('read');
         try {
             return new JsonResponse(['ok' => true, 'data' => $service->build()]);
         } catch (\Throwable $e) {

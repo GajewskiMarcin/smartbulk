@@ -5,8 +5,16 @@ node_modules/
 # Vite dev artifacts
 views/js/app/.vite/
 
-# Composer deps (if used in the future)
-vendor/
+# Composer autoloader — MUST ship. PrestaShop's ContainerBuilder::loadModulesAutoloader()
+# includes modules/<name>/vendor/autoload.php on every container instantiation to make the
+# module's SmartBulk\* Symfony controllers autoloadable; without it PS throws
+# ClassNotFoundError. There are no third-party composer dependencies to vendor, so this is
+# just the generated PSR-4 autoloader (must be regenerated NON-authoritative: `composer
+# dump-autoload`, never `-a`, or new classes won't resolve).
+!vendor/
+vendor/*
+!vendor/autoload.php
+!vendor/composer/
 
 # Editor / OS junk
 .DS_Store

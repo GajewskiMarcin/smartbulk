@@ -12,19 +12,18 @@ declare(strict_types=1);
 namespace SmartBulk\Controller\Api;
 
 use Context;
-use PrestaShopBundle\Controller\Admin\PrestaShopAdminController;
-use PrestaShopBundle\Security\Attribute\AdminSecurity;
+use SmartBulk\Controller\CompatAdminController;
 use SmartBulk\Repository\SegmentRepository;
 use SmartBulk\Service\Segment\PresetSegments;
 use SmartBulk\Service\Segment\SegmentService;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 
-final class SegmentController extends PrestaShopAdminController
+final class SegmentController extends CompatAdminController
 {
-    #[AdminSecurity("is_granted('read', 'AdminSmartBulk')")]
     public function presetsAction(PresetSegments $presets, SegmentService $segments): JsonResponse
     {
+        $this->assertAccess('read');
         $out = [];
         foreach ($presets->list() as $preset) {
             $count = 0;
@@ -38,9 +37,9 @@ final class SegmentController extends PrestaShopAdminController
         return new JsonResponse(['ok' => true, 'presets' => $out]);
     }
 
-    #[AdminSecurity("is_granted('read', 'AdminSmartBulk')")]
     public function countAction(Request $request, SegmentService $segments): JsonResponse
     {
+        $this->assertAccess('read');
         try {
             $spec = $this->jsonBody($request);
             return new JsonResponse(['ok' => true, 'count' => $segments->count($spec)]);
@@ -49,9 +48,9 @@ final class SegmentController extends PrestaShopAdminController
         }
     }
 
-    #[AdminSecurity("is_granted('read', 'AdminSmartBulk')")]
     public function sampleAction(Request $request, SegmentService $segments): JsonResponse
     {
+        $this->assertAccess('read');
         try {
             $spec  = $this->jsonBody($request);
             $limit = max(1, min(50, (int) ($spec['limit'] ?? 10)));
@@ -61,9 +60,9 @@ final class SegmentController extends PrestaShopAdminController
         }
     }
 
-    #[AdminSecurity("is_granted('read', 'AdminSmartBulk')")]
     public function productIdsAction(Request $request, SegmentService $segments): JsonResponse
     {
+        $this->assertAccess('read');
         try {
             $spec  = $this->jsonBody($request);
             $limit = isset($spec['limit']) ? (int) $spec['limit'] : null;
@@ -75,9 +74,9 @@ final class SegmentController extends PrestaShopAdminController
 
     // ---- Saved segments CRUD ----
 
-    #[AdminSecurity("is_granted('read', 'AdminSmartBulk')")]
     public function listAction(SegmentRepository $repo): JsonResponse
     {
+        $this->assertAccess('read');
         $idShop = (int) Context::getContext()->shop->id;
         $rows = $repo->listForShop($idShop);
         return new JsonResponse([
@@ -86,9 +85,9 @@ final class SegmentController extends PrestaShopAdminController
         ]);
     }
 
-    #[AdminSecurity("is_granted('create', 'AdminSmartBulk')")]
     public function createAction(Request $request, SegmentRepository $repo): JsonResponse
     {
+        $this->assertAccess('create');
         $payload = $this->jsonBody($request);
         $name = trim((string) ($payload['name'] ?? ''));
         if ($name === '') {
@@ -110,9 +109,9 @@ final class SegmentController extends PrestaShopAdminController
         return new JsonResponse(['ok' => true, 'segment' => $row ? $this->normalize($row) : null], 201);
     }
 
-    #[AdminSecurity("is_granted('delete', 'AdminSmartBulk')")]
     public function deleteAction(int $id, SegmentRepository $repo): JsonResponse
     {
+        $this->assertAccess('delete');
         $repo->delete($id);
         return new JsonResponse(['ok' => true]);
     }

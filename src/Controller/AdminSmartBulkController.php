@@ -14,24 +14,22 @@ declare(strict_types=1);
 
 namespace SmartBulk\Controller;
 
-use PrestaShop\PrestaShop\Core\Context\ShopContext;
-use PrestaShopBundle\Controller\Admin\PrestaShopAdminController;
-use PrestaShopBundle\Security\Attribute\AdminSecurity;
+use SmartBulk\Controller\CompatAdminController;
 use Symfony\Component\HttpFoundation\RedirectResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
 
-final class AdminSmartBulkController extends PrestaShopAdminController
+final class AdminSmartBulkController extends CompatAdminController
 {
-    #[AdminSecurity("is_granted('read', request.get('_legacy_controller'))")]
-    public function indexAction(Request $request, ShopContext $shopContext): Response
+    public function indexAction(Request $request): Response
     {
+        $this->assertAccess('read');
         $bootstrap = [
             'module' => [
                 'name'    => 'smartbulk',
-                'version' => '1.0.0',
+                'version' => $this->moduleVersion(),
             ],
-            'shop' => $this->resolveShop($shopContext),
+            'shop' => $this->resolveShop(),
             'user' => $this->resolveUser(),
             'currency' => $this->resolveCurrency(),
             'links' => [
@@ -56,7 +54,7 @@ final class AdminSmartBulkController extends PrestaShopAdminController
     /**
      * @return array{id:int,ids:int[],is_all:bool,is_group:bool,is_single:bool}
      */
-    private function resolveShop(ShopContext $shopContext): array
+    private function resolveShop(): array
     {
         $id = 0;
         $ids = [];
@@ -64,23 +62,22 @@ final class AdminSmartBulkController extends PrestaShopAdminController
         $isGroup = false;
         $isAll = false;
 
+        // Use the legacy Context/Shop API — present on PS 8 and PS 9 alike.
+        // PS 9's ShopContext DI service (PrestaShop\PrestaShop\Core\Context\ShopContext)
+        // does not exist on PS 8, and type-hinting it breaks container compilation there.
         try {
-            if (method_exists($shopContext, 'getId')) {
-                $id = (int) $shopContext->getId();
+            $ctx = \Context::getContext();
+            if ($ctx && isset($ctx->shop) && $ctx->shop && $ctx->shop->id) {
+                $id = (int) $ctx->shop->id;
             }
-            if (method_exists($shopContext, 'getShopConstraint')) {
-                $constraint = $shopContext->getShopConstraint();
-                if ($constraint !== null) {
-                    if (method_exists($constraint, 'forAllShops')) {
-                        $isAll = (bool) $constraint->forAllShops();
-                    }
-                    if (method_exists($constraint, 'getShopGroupId') && $constraint->getShopGroupId() !== null) {
-                        $isGroup = true;
-                        $isSingle = false;
-                    }
-                    if ($isAll) {
-                        $isSingle = false;
-                    }
+            if (\class_exists('\Shop')) {
+                $shopContextType = \Shop::getContext();
+                if ($shopContextType === \Shop::CONTEXT_ALL) {
+                    $isAll = true;
+                    $isSingle = false;
+                } elseif ($shopContextType === \Shop::CONTEXT_GROUP) {
+                    $isGroup = true;
+                    $isSingle = false;
                 }
             }
         } catch (\Throwable $e) {
@@ -103,13 +100,13 @@ final class AdminSmartBulkController extends PrestaShopAdminController
     /**
      * Simple health-check endpoint for the SPA to confirm backend reachability.
      */
-    #[AdminSecurity("is_granted('read', request.get('_legacy_controller'))")]
     public function pingAction(): Response
     {
+        $this->assertAccess('read');
         return $this->json([
             'ok'      => true,
             'module'  => 'smartbulk',
-            'version' => '1.0.0',
+            'version' => $this->moduleVersion(),
             'time'    => gmdate('c'),
         ]);
     }
@@ -125,9 +122,9 @@ final class AdminSmartBulkController extends PrestaShopAdminController
      * panel in the product form's Modules tab). Stores productId + taskType
      * in session; indexAction() pops it via popAiHandoff() on the next request.
      */
-    #[AdminSecurity("is_granted('read', request.get('_legacy_controller'))")]
     public function aiHandoffAction(Request $request): RedirectResponse
     {
+        $this->assertAccess('read');
         $productId = (int) $request->query->get('productId', 0);
         $taskType  = (string) $request->query->get('taskType', '');
         if ($productId > 0 && $request->hasSession()) {
@@ -164,9 +161,9 @@ final class AdminSmartBulkController extends PrestaShopAdminController
      * Stores the selected product IDs in session and redirects to the SPA;
      * indexAction() picks them up via popGridHandoff() on the next request.
      */
-    #[AdminSecurity("is_granted('read', request.get('_legacy_controller'))")]
     public function gridHandoffAction(Request $request): RedirectResponse
     {
+        $this->assertAccess('read');
         $ids = $this->extractGridIds($request);
         if ($request->hasSession()) {
             $request->getSession()->set('smartbulk_grid_handoff', [
@@ -258,7 +255,19 @@ final class AdminSmartBulkController extends PrestaShopAdminController
             $mtime = @filemtime($jsPath);
             if ($mtime !== false) return (string) $mtime;
         }
-        return '1.0.0';
+        return $this->moduleVersion();
+    }
+
+    /**
+     * Current module version — single source of truth is SmartBulk::VERSION,
+     * with a defensive fallback if the module class isn't loaded for some reason.
+     */
+    private function moduleVersion(): string
+    {
+        if (\class_exists('\SmartBulk') && \defined('SmartBulk::VERSION')) {
+            return (string) \SmartBulk::VERSION;
+        }
+        return '1.0.4';
     }
 
     private function resolveUser(): array

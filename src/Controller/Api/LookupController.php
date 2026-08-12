@@ -16,15 +16,14 @@ namespace SmartBulk\Controller\Api;
 
 use Context;
 use Db;
-use PrestaShopBundle\Controller\Admin\PrestaShopAdminController;
-use PrestaShopBundle\Security\Attribute\AdminSecurity;
+use SmartBulk\Controller\CompatAdminController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 
-final class LookupController extends PrestaShopAdminController
+final class LookupController extends CompatAdminController
 {
-    #[AdminSecurity("is_granted('read', 'AdminSmartBulk')")]
     public function categoriesAction(): JsonResponse
     {
+        $this->assertAccess('read');
         $ctx = Context::getContext();
         $idLang = (int) $ctx->language->id;
         $idShop = (int) $ctx->shop->id;
@@ -53,9 +52,9 @@ final class LookupController extends PrestaShopAdminController
         ]);
     }
 
-    #[AdminSecurity("is_granted('read', 'AdminSmartBulk')")]
     public function brandsAction(): JsonResponse
     {
+        $this->assertAccess('read');
         $rows = Db::getInstance()->executeS(
             'SELECT m.id_manufacturer, m.name
              FROM `' . _DB_PREFIX_ . 'manufacturer` m
@@ -71,9 +70,9 @@ final class LookupController extends PrestaShopAdminController
         ]);
     }
 
-    #[AdminSecurity("is_granted('read', 'AdminSmartBulk')")]
     public function suppliersAction(): JsonResponse
     {
+        $this->assertAccess('read');
         $rows = Db::getInstance()->executeS(
             'SELECT s.id_supplier, s.name
              FROM `' . _DB_PREFIX_ . 'supplier` s
@@ -89,9 +88,9 @@ final class LookupController extends PrestaShopAdminController
         ]);
     }
 
-    #[AdminSecurity("is_granted('read', 'AdminSmartBulk')")]
     public function featuresAction(): JsonResponse
     {
+        $this->assertAccess('read');
         $idLang = (int) Context::getContext()->language->id;
         $rows = Db::getInstance()->executeS(
             'SELECT f.id_feature, fl.name AS feature_name,
@@ -126,9 +125,9 @@ final class LookupController extends PrestaShopAdminController
         return new JsonResponse(['ok' => true, 'features' => array_values($features)]);
     }
 
-    #[AdminSecurity("is_granted('read', 'AdminSmartBulk')")]
     public function attributesAction(): JsonResponse
     {
+        $this->assertAccess('read');
         $idLang = (int) Context::getContext()->language->id;
         $rows = Db::getInstance()->executeS(
             'SELECT ag.id_attribute_group, agl.name AS group_name,
@@ -163,9 +162,9 @@ final class LookupController extends PrestaShopAdminController
         return new JsonResponse(['ok' => true, 'attributes' => array_values($groups)]);
     }
 
-    #[AdminSecurity("is_granted('read', 'AdminSmartBulk')")]
     public function languagesAction(): JsonResponse
     {
+        $this->assertAccess('read');
         $rows = Db::getInstance()->executeS(
             'SELECT id_lang, name, iso_code FROM `' . _DB_PREFIX_ . 'lang` WHERE active = 1 ORDER BY name ASC'
         ) ?: [];
@@ -179,9 +178,9 @@ final class LookupController extends PrestaShopAdminController
         ]);
     }
 
-    #[AdminSecurity("is_granted('read', 'AdminSmartBulk')")]
     public function fieldCatalogAction(): JsonResponse
     {
+        $this->assertAccess('read');
         return new JsonResponse([
             'ok'           => true,
             'fields'       => \SmartBulk\Service\Segment\FieldCatalog::all(),
@@ -189,9 +188,9 @@ final class LookupController extends PrestaShopAdminController
         ]);
     }
 
-    #[AdminSecurity("is_granted('read', 'AdminSmartBulk')")]
     public function taxRulesAction(): JsonResponse
     {
+        $this->assertAccess('read');
         $rows = Db::getInstance()->executeS(
             'SELECT trg.id_tax_rules_group, trg.name
              FROM `' . _DB_PREFIX_ . 'tax_rules_group` trg
@@ -207,9 +206,9 @@ final class LookupController extends PrestaShopAdminController
         ]);
     }
 
-    #[AdminSecurity("is_granted('read', 'AdminSmartBulk')")]
     public function tagsAction(): JsonResponse
     {
+        $this->assertAccess('read');
         $idLang = (int) Context::getContext()->language->id;
         $rows = Db::getInstance()->executeS(
             'SELECT t.id_tag, t.name

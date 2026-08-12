@@ -12,8 +12,7 @@ declare(strict_types=1);
 namespace SmartBulk\Controller\Api;
 
 use InvalidArgumentException;
-use PrestaShopBundle\Controller\Admin\PrestaShopAdminController;
-use PrestaShopBundle\Security\Attribute\AdminSecurity;
+use SmartBulk\Controller\CompatAdminController;
 use SmartBulk\Repository\ActionTemplateRepository;
 use SmartBulk\Service\Bulk\ActionTemplates;
 use SmartBulk\Service\Bulk\BulkEditorService;
@@ -22,20 +21,20 @@ use SmartBulk\Service\Segment\SegmentService;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 
-final class BulkController extends PrestaShopAdminController
+final class BulkController extends CompatAdminController
 {
-    #[AdminSecurity("is_granted('read', 'AdminSmartBulk')")]
     public function fieldsAction(): JsonResponse
     {
+        $this->assertAccess('read');
         return new JsonResponse([
             'ok'     => true,
             'fields' => FieldDefinitions::all(),
         ]);
     }
 
-    #[AdminSecurity("is_granted('read', 'AdminSmartBulk')")]
     public function templatesAction(ActionTemplateRepository $repo): JsonResponse
     {
+        $this->assertAccess('read');
         $idShop = (int) \Context::getContext()->shop->id;
         return new JsonResponse([
             'ok'        => true,
@@ -43,9 +42,9 @@ final class BulkController extends PrestaShopAdminController
         ]);
     }
 
-    #[AdminSecurity("is_granted('create', 'AdminSmartBulk')")]
     public function createTemplateAction(Request $request, ActionTemplateRepository $repo): JsonResponse
     {
+        $this->assertAccess('create');
         $payload = $this->jsonBody($request);
         $name = trim((string) ($payload['name'] ?? ''));
         $actions = is_array($payload['actions'] ?? null) ? $payload['actions'] : [];
@@ -63,20 +62,20 @@ final class BulkController extends PrestaShopAdminController
         return new JsonResponse(['ok' => true, 'id' => $id], 201);
     }
 
-    #[AdminSecurity("is_granted('delete', 'AdminSmartBulk')")]
     public function deleteTemplateAction(int $id, ActionTemplateRepository $repo): JsonResponse
     {
+        $this->assertAccess('delete');
         $idShop = (int) \Context::getContext()->shop->id;
         $repo->delete($id, $idShop);
         return new JsonResponse(['ok' => true]);
     }
 
-    #[AdminSecurity("is_granted('read', 'AdminSmartBulk')")]
     public function previewAction(
         Request $request,
         BulkEditorService $service,
         SegmentService $segments
     ): JsonResponse {
+        $this->assertAccess('read');
         $payload = $this->jsonBody($request);
         $actions = is_array($payload['actions'] ?? null) ? $payload['actions'] : [];
         $idLang  = isset($payload['id_lang']) ? (int) $payload['id_lang'] : null;
@@ -110,12 +109,12 @@ final class BulkController extends PrestaShopAdminController
         }
     }
 
-    #[AdminSecurity("is_granted('update', 'AdminSmartBulk')")]
     public function createBatchAction(
         Request $request,
         BulkEditorService $service,
         SegmentService $segments
     ): JsonResponse {
+        $this->assertAccess('update');
         $payload = $this->jsonBody($request);
         $actions = is_array($payload['actions'] ?? null) ? $payload['actions'] : [];
         $idLang  = isset($payload['id_lang']) ? (int) $payload['id_lang'] : null;
@@ -142,9 +141,9 @@ final class BulkController extends PrestaShopAdminController
         }
     }
 
-    #[AdminSecurity("is_granted('update', 'AdminSmartBulk')")]
     public function processNextAction(int $id, Request $request, BulkEditorService $service): JsonResponse
     {
+        $this->assertAccess('update');
         $limit = max(1, min(1000, (int) $request->query->get('limit', 100)));
         try {
             return new JsonResponse(['ok' => true, 'batch' => $service->processNext($id, $limit)]);
@@ -155,9 +154,9 @@ final class BulkController extends PrestaShopAdminController
         }
     }
 
-    #[AdminSecurity("is_granted('read', 'AdminSmartBulk')")]
     public function getBatchAction(int $id, Request $request, BulkEditorService $service): JsonResponse
     {
+        $this->assertAccess('read');
         try {
             $status = $service->getStatus($id);
             if ($request->query->get('include_items') === '1') {
@@ -169,9 +168,9 @@ final class BulkController extends PrestaShopAdminController
         }
     }
 
-    #[AdminSecurity("is_granted('update', 'AdminSmartBulk')")]
     public function cancelAction(int $id, BulkEditorService $service): JsonResponse
     {
+        $this->assertAccess('update');
         try {
             return new JsonResponse(['ok' => true, 'batch' => $service->cancel($id)]);
         } catch (InvalidArgumentException $e) {
@@ -181,9 +180,9 @@ final class BulkController extends PrestaShopAdminController
         }
     }
 
-    #[AdminSecurity("is_granted('update', 'AdminSmartBulk')")]
     public function resumeAction(int $id, BulkEditorService $service): JsonResponse
     {
+        $this->assertAccess('update');
         try {
             return new JsonResponse(['ok' => true, 'batch' => $service->resume($id)]);
         } catch (InvalidArgumentException $e) {
@@ -193,9 +192,9 @@ final class BulkController extends PrestaShopAdminController
         }
     }
 
-    #[AdminSecurity("is_granted('update', 'AdminSmartBulk')")]
     public function undoAction(int $id, BulkEditorService $service): JsonResponse
     {
+        $this->assertAccess('update');
         try {
             return new JsonResponse(['ok' => true, 'result' => $service->undo($id)]);
         } catch (InvalidArgumentException $e) {

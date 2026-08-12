@@ -11,17 +11,16 @@ declare(strict_types=1);
 
 namespace SmartBulk\Controller\Api;
 
-use PrestaShopBundle\Controller\Admin\PrestaShopAdminController;
-use PrestaShopBundle\Security\Attribute\AdminSecurity;
+use SmartBulk\Controller\CompatAdminController;
 use SmartBulk\Service\Config\ConfigPortabilityService;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 
-final class ConfigController extends PrestaShopAdminController
+final class ConfigController extends CompatAdminController
 {
-    #[AdminSecurity("is_granted('read', 'AdminSmartBulk')")]
     public function exportAction(ConfigPortabilityService $service): JsonResponse
     {
+        $this->assertAccess('read');
         try {
             return new JsonResponse(['ok' => true, 'config' => $service->export()]);
         } catch (\Throwable $e) {
@@ -29,9 +28,9 @@ final class ConfigController extends PrestaShopAdminController
         }
     }
 
-    #[AdminSecurity("is_granted('update', 'AdminSmartBulk')")]
     public function importAction(Request $request, ConfigPortabilityService $service): JsonResponse
     {
+        $this->assertAccess('update');
         $payload = $this->jsonBody($request);
         $config = is_array($payload['config'] ?? null) ? $payload['config'] : null;
         if ($config === null) {

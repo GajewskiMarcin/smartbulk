@@ -11,17 +11,16 @@ declare(strict_types=1);
 
 namespace SmartBulk\Controller\Api;
 
-use PrestaShopBundle\Controller\Admin\PrestaShopAdminController;
-use PrestaShopBundle\Security\Attribute\AdminSecurity;
+use SmartBulk\Controller\CompatAdminController;
 use SmartBulk\Service\Health\ContentHealthService;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 
-final class HealthController extends PrestaShopAdminController
+final class HealthController extends CompatAdminController
 {
-    #[AdminSecurity("is_granted('read', 'AdminSmartBulk')")]
     public function scanAction(Request $request, ContentHealthService $health): JsonResponse
     {
+        $this->assertAccess('read');
         $idLang = $request->query->has('id_lang') ? (int) $request->query->get('id_lang') : null;
         $idShop = $request->query->has('id_shop') ? (int) $request->query->get('id_shop') : null;
 
@@ -32,9 +31,9 @@ final class HealthController extends PrestaShopAdminController
         }
     }
 
-    #[AdminSecurity("is_granted('read', 'AdminSmartBulk')")]
     public function productsAction(Request $request, ContentHealthService $health): JsonResponse
     {
+        $this->assertAccess('read');
         $problem = (string) $request->query->get('problem', '');
         $limit   = (int) $request->query->get('limit', 20);
         $offset  = (int) $request->query->get('offset', 0);
@@ -62,9 +61,9 @@ final class HealthController extends PrestaShopAdminController
         }
     }
 
-    #[AdminSecurity("is_granted('read', 'AdminSmartBulk')")]
     public function snapshotsAction(Request $request, ContentHealthService $health): JsonResponse
     {
+        $this->assertAccess('read');
         $limit = (int) $request->query->get('limit', 30);
         $idShop = $request->query->has('id_shop') ? (int) $request->query->get('id_shop') : null;
         try {
@@ -74,9 +73,9 @@ final class HealthController extends PrestaShopAdminController
         }
     }
 
-    #[AdminSecurity("is_granted('read', 'AdminSmartBulk')")]
     public function productIdsAction(Request $request, ContentHealthService $health): JsonResponse
     {
+        $this->assertAccess('read');
         $problem = (string) $request->query->get('problem', '');
         $limit   = (int) $request->query->get('limit', 5000);
         $idLang  = $request->query->has('id_lang') ? (int) $request->query->get('id_lang') : null;

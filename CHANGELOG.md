@@ -7,6 +7,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.4] — 2026-08-12
+
+PrestaShop 8 compatibility. The module installed on PS 9 but crashed on PS 8.x on first access
+with `ClassNotFoundError` (and, once past that, further PS 9-only API errors). Now verified
+installing and rendering on **PS 8.1.5 and PS 9**.
+
+### Fixed
+- **Install/boot crash on PrestaShop 8 (`ClassNotFoundError: AdminSmartBulkController` from namespace `SmartBulk\Controller`).**
+  Root cause: the release archive omitted `vendor/`, so PrestaShop's
+  `ContainerBuilder::loadModulesAutoloader()` had no autoloader to include and the module's
+  namespaced `SmartBulk\*` Symfony controllers were never loadable at request time. The generated
+  (non-authoritative) Composer autoloader now ships with the module.
+- **PS 9-only base controller.** The Symfony controllers extended `PrestaShopAdminController`,
+  which does not exist on PS 8. A new `CompatAdminController` extends `PrestaShopAdminController`
+  on PS 9 and `FrameworkBundleAdminController` on PS 8.
+- **PS 9-only `#[AdminSecurity]` attribute** (absent on PS 8, where it exists only as an annotation)
+  is replaced by an explicit `assertAccess()` guard built on the legacy Profile/Tab permission API,
+  enforcing the same per-tab read/create/update/delete rights identically on both versions.
+- **PS 9-only `ShopContext` dependency injection** in the main controller broke Symfony container
+  compilation on PS 8 (type-hinting a non-existent class). Shop context is now resolved through the
+  legacy `Context`/`Shop` API available on both versions.
+
+### Changed
+- The module version reported to the UI and the `api/ping` endpoint is read from a single source of
+  truth (`SmartBulk::VERSION`) instead of a hard-coded `1.0.0` string.
+
 ## [1.0.3] — 2026-07-26
 
 A full audit pass (prompted by the community bug report) fixed further issues, plus a UX addition.

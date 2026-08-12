@@ -13,16 +13,15 @@ namespace SmartBulk\Controller\Api;
 
 use Context;
 use Db;
-use PrestaShopBundle\Controller\Admin\PrestaShopAdminController;
-use PrestaShopBundle\Security\Attribute\AdminSecurity;
+use SmartBulk\Controller\CompatAdminController;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 
-final class ProductController extends PrestaShopAdminController
+final class ProductController extends CompatAdminController
 {
-    #[AdminSecurity("is_granted('read', 'AdminSmartBulk')")]
     public function searchAction(Request $request): JsonResponse
     {
+        $this->assertAccess('read');
         $q = trim((string) $request->query->get('q', ''));
         $limit = min(20, max(1, (int) $request->query->get('limit', 10)));
 

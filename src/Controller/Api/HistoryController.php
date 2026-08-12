@@ -12,17 +12,16 @@ declare(strict_types=1);
 namespace SmartBulk\Controller\Api;
 
 use InvalidArgumentException;
-use PrestaShopBundle\Controller\Admin\PrestaShopAdminController;
-use PrestaShopBundle\Security\Attribute\AdminSecurity;
+use SmartBulk\Controller\CompatAdminController;
 use SmartBulk\Service\History\HistoryService;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 
-final class HistoryController extends PrestaShopAdminController
+final class HistoryController extends CompatAdminController
 {
-    #[AdminSecurity("is_granted('read', 'AdminSmartBulk')")]
     public function listAction(Request $request, HistoryService $history): JsonResponse
     {
+        $this->assertAccess('read');
         try {
             $res = $history->listBatches([
                 'kind'   => (string) $request->query->get('kind', 'all'),
@@ -36,9 +35,9 @@ final class HistoryController extends PrestaShopAdminController
         }
     }
 
-    #[AdminSecurity("is_granted('read', 'AdminSmartBulk')")]
     public function detailAction(int $id, HistoryService $history): JsonResponse
     {
+        $this->assertAccess('read');
         try {
             return new JsonResponse(['ok' => true, 'batch' => $history->detail($id)]);
         } catch (InvalidArgumentException $e) {
