@@ -2,7 +2,7 @@
 
 import { api } from './api';
 
-export type FieldType = 'text' | 'numeric' | 'int' | 'bool' | 'enum' | 'feature';
+export type FieldType = 'text' | 'numeric' | 'int' | 'bool' | 'enum' | 'feature' | 'tags';
 export type Operator =
   | 'set'
   | 'append'
@@ -15,6 +15,7 @@ export type Operator =
   | 'generate_from_short_desc'
   | 'ai_generate'
   | 'add'
+  | 'remove'
   | 'skip';
 export type MathOp = '+' | '-' | '*' | '/' | '+%' | '-%';
 export type LookupKind = 'brands' | 'suppliers' | 'categories' | 'tax_rules';
@@ -69,6 +70,9 @@ export interface BulkAction {
   id_feature?: number;
   id_feature_value?: number | null;
   custom_value?: string;
+  // Tags action (_tags virtual field): free-text tag names to add / remove.
+  // Unused for the 'clear' operator (which removes all tags).
+  tags?: string[];
 }
 
 export type DiffFlag =
@@ -276,6 +280,7 @@ export function operatorLabel(op: Operator): string {
     generate_from_short_desc: '✨ Generate from short description',
     ai_generate:              '🤖 AI generate (prompt)',
     add:                      'Add value',
+    remove:                   'Remove value',
     skip:                     'Skip',
   }[op];
 }

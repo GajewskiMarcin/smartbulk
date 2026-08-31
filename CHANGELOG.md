@@ -7,6 +7,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.5] — 2026-08-31
+
+### Added
+- **Bulk "Tags" action.** A new *Tags* field in the Bulk Editor with **Add / Remove / Clear**
+  operators (per language). *Add* links the given tag(s) to each product, creating any that
+  don't exist yet; *Remove* unlinks them; *Clear* removes all tags. Free-text entry with
+  autocomplete from the shop's existing tags. Fully undoable from the batch runner and History.
+  Available in English and Polish.
+
+### Fixed
+- **Category picker showed the wrong tree.** The category list — both the product-selection
+  criterion and the "Default category" action — was ordered by depth + name, which grouped
+  subcategories of different parents together, so the indented list showed children under the
+  wrong parent. It is now returned in true tree order (nested-set `nleft` pre-order), matching
+  the back-office category tree.
+
 ## [1.0.4] — 2026-08-12
 
 PrestaShop 8 compatibility. The module installed on PS 9 but crashed on PS 8.x on first access

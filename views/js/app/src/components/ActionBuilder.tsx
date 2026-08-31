@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useId, useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import Button from './Button';
 import { Input, Select } from './Form';
@@ -56,6 +56,9 @@ export default function ActionBuilder({ fields, value, onChange, globalLang = 'a
       newAction.id_feature = undefined;
       newAction.id_feature_value = null;
       newAction.custom_value = '';
+    }
+    if (field.type === 'tags') {
+      newAction.tags = [];
     }
     onChange([...value, newAction]);
     setPickerOpen(false);
@@ -353,6 +356,11 @@ function renderValueInput(
   // (you have to know WHICH feature to clear).
   if (def.type === 'feature') {
     return <FeatureValuePicker action={action} op={op} onChange={onChange} />;
+  }
+
+  // Tags (virtual field) — free-text tag chips with suggestions from existing tags.
+  if (def.type === 'tags') {
+    return <TagsPicker action={action} op={op} onChange={onChange} />;
   }
 
   if (op === 'skip' || op === 'clear') {
@@ -736,6 +744,110 @@ function FeatureValuePicker({
           </div>
         </>
       )}
+    </div>
+  );
+}
+
+// ---------- Tags picker (virtual _tags field) ----------
+
+/**
+ * Free-text tag entry with autocomplete suggestions from the shop's existing tags.
+ * 'add' creates tags that don't exist yet; 'remove' unlinks matching tags; 'clear'
+ * needs no value (all tags removed). Tags are per-language — the action's language
+ * comes from the global language tabs / per-action override.
+ */
+function TagsPicker({
+  action,
+  op,
+  onChange,
+}: {
+  action: BulkAction;
+  op: Operator;
+  onChange: (patch: Partial<BulkAction>) => void;
+}) {
+  const [draft, setDraft] = useState('');
+  const listId = useId();
+  const query = useQuery({
+    queryKey: ['lookup', 'tags'],
+    queryFn: () => lookupsApi.tags(),
+    staleTime: 5 * 60 * 1000,
+  });
+  const tags = action.tags ?? [];
+  const suggestions = (query.data ?? []).map((tg) => tg.name);
+
+  const addTags = (raw: string) => {
+    const parts = raw.split(',').map((s) => s.trim()).filter(Boolean);
+    if (parts.length === 0) return;
+    const seen = new Set(tags.map((tg) => tg.toLowerCase()));
+    const next = [...tags];
+    for (const p of parts) {
+      if (!seen.has(p.toLowerCase())) { next.push(p); seen.add(p.toLowerCase()); }
+    }
+    onChange({ tags: next });
+    setDraft('');
+  };
+  const removeChip = (idx: number) => onChange({ tags: tags.filter((_, i) => i !== idx) });
+
+  if (op === 'clear') {
+    return (
+      <div className="text-[12px] text-amber-700 py-2 px-3 leading-relaxed">
+        {t('bulk.tags.clear_warn', 'All tags will be removed from each matching product (in the selected language).')}
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-2">
+      {tags.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {tags.map((tg, i) => (
+            <span key={`${tg}-${i}`} className="inline-flex items-center gap-1 bg-muted rounded-md px-2 py-0.5 text-[12px]">
+              {tg}
+              <button
+                type="button"
+                onClick={() => removeChip(i)}
+                className="text-muted-foreground hover:text-destructive leading-none"
+                title={t('bulk.tags.remove_chip', 'Remove')}
+              >
+                ×
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+      <input
+        list={listId}
+        className={cn(
+          'w-full px-3 py-2 border border-border rounded-md bg-white text-[13px]',
+          'focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary'
+        )}
+        placeholder={
+          op === 'add'
+            ? t('bulk.tags.add_ph', 'Type a tag and press Enter…')
+            : t('bulk.tags.remove_ph', 'Type a tag to remove and press Enter…')
+        }
+        value={draft}
+        onChange={(e) => setDraft(e.target.value)}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ',') {
+            e.preventDefault();
+            addTags(draft);
+          } else if (e.key === 'Backspace' && draft === '' && tags.length > 0) {
+            removeChip(tags.length - 1);
+          }
+        }}
+        onBlur={() => { if (draft.trim()) addTags(draft); }}
+      />
+      <datalist id={listId}>
+        {suggestions.map((s) => (
+          <option key={s} value={s} />
+        ))}
+      </datalist>
+      <div className="text-[11px] text-muted-foreground leading-relaxed">
+        {op === 'add'
+          ? t('bulk.tags.add_hint', 'Each matching product gets these tags. Tags that do not exist yet are created; ones the product already has are skipped.')
+          : t('bulk.tags.remove_hint', 'These tags are unlinked from each matching product. The tags themselves stay in your shop.')}
+      </div>
     </div>
   );
 }

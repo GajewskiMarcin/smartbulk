@@ -802,3 +802,12 @@ $_MODULE['<{smartbulk}prestashop>smartbulk_0512d085cef02e2c26b3bea541db9edc'] = 
 $_MODULE['<{smartbulk}prestashop>smartbulk_5a9d18bb87ff12835dc844883c5c3ebe'] = 'zmian';
 $_MODULE['<{smartbulk}prestashop>smartbulk_4bcc5e3b4e234849671e9d18cb069aa8'] = 'błędów';
 $_MODULE['<{smartbulk}prestashop>smartbulk_cb13500cd4baae527d60c6298221330c'] = 'Wznawianie…';
+
+// SmartBulk 1.0.5 — tags action (PL)
+$_MODULE['<{smartbulk}prestashop>smartbulk_f5c0535048fc60970fddf83b26d2bd2b'] = 'Usuń wartość';
+$_MODULE['<{smartbulk}prestashop>smartbulk_f30d2b2dc0221cf47e8723947fe300f3'] = 'Wpisz tag i naciśnij Enter…';
+$_MODULE['<{smartbulk}prestashop>smartbulk_049cf4f15079e824a4b8d55b187d9583'] = 'Wpisz tag do usunięcia i naciśnij Enter…';
+$_MODULE['<{smartbulk}prestashop>smartbulk_1063e38cb53d94d386f21227fcd84717'] = 'Usuń';
+$_MODULE['<{smartbulk}prestashop>smartbulk_3273a2521d1c0abd7ec8ad57e5673e4d'] = 'Wszystkie tagi zostaną usunięte z każdego pasującego produktu (w wybranym języku).';
+$_MODULE['<{smartbulk}prestashop>smartbulk_955eabe3fcb36e3b224eb654a4374bb7'] = 'Każdy pasujący produkt otrzyma te tagi. Nieistniejące tagi zostaną utworzone; te, które produkt już ma, są pomijane.';
+$_MODULE['<{smartbulk}prestashop>smartbulk_7ca01efcaf26a00af028f6c1d24e4fa0'] = 'Te tagi zostaną odpięte od każdego pasującego produktu. Same tagi pozostają w sklepie.';

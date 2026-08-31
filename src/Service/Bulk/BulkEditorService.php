@@ -719,6 +719,15 @@ final class BulkEditorService
                 continue;
             }
 
+            // Virtual field: tagi produktu
+            if ($fieldId === '_tags') {
+                $tagChange = $this->diffTags($idProduct, $action, $op, $idLang);
+                if ($tagChange !== null) {
+                    $changes[] = $tagChange;
+                }
+                continue;
+            }
+
             $oldValue = $product[$fieldId] ?? null;
             $computed = $this->computeNewValueWithFlags($fieldId, $op, $oldValue, $action, $def, $product);
             $newValue = $computed['value'];
@@ -929,6 +938,20 @@ final class BulkEditorService
                     $this->logChange($idBatch, $idProduct, '_feature', $result['old'], $result['new'], null);
                 }
                 $diffs[] = ['field' => '_feature', 'old' => (string) $result['old'], 'new' => (string) $result['new']];
+                $changed++;
+                continue;
+            }
+
+            // Virtual field: tagi — własna logika zapisu. old_value trzyma snapshot
+            // starych tagów ({old_tags:[…]}) który undoTags() przywraca; new_value
+            // to czytelne podsumowanie zmiany.
+            if ($fieldId === '_tags') {
+                $result = $this->applyTags($idProduct, $action, $op, $idLang, $isDryRun);
+                if ($result === null) continue;
+                if (!$isDryRun) {
+                    $this->logChange($idBatch, $idProduct, '_tags', $result['old'], $result['new'], $idLang);
+                }
+                $diffs[] = ['field' => '_tags', 'old' => (string) ($result['old_display'] ?? ''), 'new' => (string) $result['new']];
                 $changed++;
                 continue;
             }
@@ -1409,6 +1432,197 @@ final class BulkEditorService
                 );
             }
         }
+    }
+
+    // =====================================================================
+    // Virtual field: _tags (product tags → product_tag table, per language)
+    // =====================================================================
+
+    /**
+     * Normalize a free-text tag list (array of strings or a comma-separated string)
+     * into a clean, case-insensitively de-duplicated array of tag names.
+     *
+     * @param mixed $raw
+     * @return string[]
+     */
+    private function normalizeTagNames($raw): array
+    {
+        if (is_string($raw)) {
+            $raw = explode(',', $raw);
+        }
+        if (!is_array($raw)) {
+            return [];
+        }
+        $names = [];
+        foreach ($raw as $n) {
+            $n = trim((string) $n);
+            if ($n === '') continue;
+            $key = mb_strtolower($n);
+            if (!isset($names[$key])) {
+                $names[$key] = $n; // keep first-seen casing
+            }
+        }
+        return array_values($names);
+    }
+
+    /**
+     * Current tags of a product in one language.
+     *
+     * @return array<int,array{id_tag:int,name:string}>
+     */
+    private function currentProductTags(int $idProduct, int $idLang): array
+    {
+        $prefix = _DB_PREFIX_;
+        $rows = Db::getInstance()->executeS(
+            "SELECT pt.id_tag, t.name
+             FROM `{$prefix}product_tag` pt
+             JOIN `{$prefix}tag` t ON t.id_tag = pt.id_tag
+             WHERE pt.id_product = " . (int) $idProduct . " AND pt.id_lang = " . (int) $idLang
+        ) ?: [];
+        return array_map(static fn (array $r) => [
+            'id_tag' => (int) $r['id_tag'],
+            'name'   => (string) $r['name'],
+        ], $rows);
+    }
+
+    /** Find a tag id by name (per language), creating the tag if it doesn't exist yet. */
+    private function resolveOrCreateTag(string $name, int $idLang): int
+    {
+        $prefix = _DB_PREFIX_;
+        $name = trim($name);
+        if ($name === '') return 0;
+        // getValue() appends its own LIMIT 1 — do not add one here.
+        $existing = (int) Db::getInstance()->getValue(
+            "SELECT id_tag FROM `{$prefix}tag`
+             WHERE id_lang = " . (int) $idLang . " AND name = '" . pSQL($name) . "'"
+        );
+        if ($existing > 0) return $existing;
+        Db::getInstance()->execute(
+            "INSERT INTO `{$prefix}tag` (id_lang, name) VALUES (" . (int) $idLang . ", '" . pSQL($name) . "')"
+        );
+        return (int) Db::getInstance()->Insert_ID();
+    }
+
+    /**
+     * Preview a _tags action for one product (readable diff row). Mirrors diffFeature.
+     *
+     * @param array<string,mixed> $action
+     * @return array<string,mixed>|null
+     */
+    private function diffTags(int $idProduct, array $action, string $op, int $idLang): ?array
+    {
+        $current   = $this->currentProductTags($idProduct, $idLang);
+        $currentLc = array_map(static fn ($r) => mb_strtolower($r['name']), $current);
+
+        if ($op === 'clear') {
+            if (!$current) return null;
+            return [
+                'field' => '_tags', 'field_label' => 'Tags', 'type' => 'tags', 'flags' => [],
+                'old' => implode(', ', array_map(static fn ($r) => $r['name'], $current)),
+                'new' => '(cleared)', 'old_len' => null, 'new_len' => null,
+            ];
+        }
+
+        $names = $this->normalizeTagNames($action['tags'] ?? null);
+        if (!$names) return null;
+        $namesLc = array_map('mb_strtolower', $names);
+
+        if ($op === 'add') {
+            $toAdd = [];
+            foreach ($names as $i => $n) {
+                if (!in_array($namesLc[$i], $currentLc, true)) $toAdd[] = $n;
+            }
+            if (!$toAdd) return null;
+            return [
+                'field' => '_tags', 'field_label' => 'Tags', 'type' => 'tags', 'flags' => [],
+                'old' => '', 'new' => '+ ' . implode(', ', $toAdd), 'old_len' => null, 'new_len' => null,
+            ];
+        }
+
+        // op === 'remove'
+        $toRemove = [];
+        foreach ($current as $r) {
+            if (in_array(mb_strtolower($r['name']), $namesLc, true)) $toRemove[] = $r['name'];
+        }
+        if (!$toRemove) return null;
+        return [
+            'field' => '_tags', 'field_label' => 'Tags', 'type' => 'tags', 'flags' => [],
+            'old' => implode(', ', $toRemove), 'new' => '(removed)', 'old_len' => null, 'new_len' => null,
+        ];
+    }
+
+    /**
+     * Apply a _tags action. Snapshots the product's current tag ids into `old`
+     * ({old_tags:[…]}) so undoTags() can fully restore them; `new` is a readable summary.
+     *
+     * @param array<string,mixed> $action
+     * @return array{old:string,new:string,old_display:string}|null  null when no-op
+     */
+    private function applyTags(int $idProduct, array $action, string $op, int $idLang, bool $isDryRun): ?array
+    {
+        $prefix     = _DB_PREFIX_;
+        $current    = $this->currentProductTags($idProduct, $idLang);
+        $currentIds = array_map(static fn ($r) => $r['id_tag'], $current);
+        $snapshot   = json_encode(['old_tags' => $currentIds]) ?: '';
+
+        if ($op === 'clear') {
+            if (!$current) return null;
+            if (!$isDryRun) {
+                Db::getInstance()->execute(
+                    "DELETE FROM `{$prefix}product_tag`
+                     WHERE id_product = " . (int) $idProduct . " AND id_lang = " . (int) $idLang
+                );
+            }
+            return [
+                'old'         => $snapshot,
+                'new'         => 'cleared ' . count($current) . ' tag(s)',
+                'old_display' => implode(', ', array_map(static fn ($r) => $r['name'], $current)),
+            ];
+        }
+
+        $names = $this->normalizeTagNames($action['tags'] ?? null);
+        if (!$names) return null;
+        $currentLc = array_map(static fn ($r) => mb_strtolower($r['name']), $current);
+
+        if ($op === 'add') {
+            $added = [];
+            foreach ($names as $n) {
+                if (in_array(mb_strtolower($n), $currentLc, true)) continue; // already present
+                if (!$isDryRun) {
+                    $idTag = $this->resolveOrCreateTag($n, $idLang);
+                    if ($idTag > 0) {
+                        Db::getInstance()->execute(
+                            "INSERT INTO `{$prefix}product_tag` (id_product, id_tag, id_lang)
+                             VALUES (" . (int) $idProduct . ", " . (int) $idTag . ", " . (int) $idLang . ")"
+                        );
+                    }
+                }
+                $added[] = $n;
+            }
+            if (!$added) return null;
+            return ['old' => $snapshot, 'new' => '+ ' . implode(', ', $added), 'old_display' => ''];
+        }
+
+        // op === 'remove'
+        $namesLc     = array_map('mb_strtolower', $names);
+        $removeIds   = [];
+        $removedName = [];
+        foreach ($current as $r) {
+            if (in_array(mb_strtolower($r['name']), $namesLc, true)) {
+                $removeIds[]   = $r['id_tag'];
+                $removedName[] = $r['name'];
+            }
+        }
+        if (!$removeIds) return null;
+        if (!$isDryRun) {
+            Db::getInstance()->execute(
+                "DELETE FROM `{$prefix}product_tag`
+                 WHERE id_product = " . (int) $idProduct . "
+                   AND id_lang = " . (int) $idLang . "
+                   AND id_tag IN (" . implode(',', array_map('intval', $removeIds)) . ")"
+            );
+        }
+        return ['old' => $snapshot, 'new' => '- ' . implode(', ', $removedName), 'old_display' => implode(', ', $removedName)];
     }
 
     /** Restore the product_tag snapshot captured before a tagging accept. */

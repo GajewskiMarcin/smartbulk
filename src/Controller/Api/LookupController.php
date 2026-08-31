@@ -28,7 +28,12 @@ final class LookupController extends CompatAdminController
         $idLang = (int) $ctx->language->id;
         $idShop = (int) $ctx->shop->id;
 
-        // Flat list; include parent for clients that want to build a tree.
+        // Flat list, but ordered by the nested-set left bound (nleft) so it comes back
+        // in true tree pre-order: each parent is immediately followed by its own
+        // descendants. Ordering by level_depth + name instead mixes subcategories of
+        // different parents at the same depth, which makes the indented list show
+        // children under the wrong parent. `id_parent` is kept for clients that build
+        // an explicit tree.
         $sql = 'SELECT c.id_category, c.id_parent, cl.name, c.level_depth
                 FROM `' . _DB_PREFIX_ . 'category` c
                 JOIN `' . _DB_PREFIX_ . 'category_lang` cl
@@ -38,7 +43,7 @@ final class LookupController extends CompatAdminController
                 JOIN `' . _DB_PREFIX_ . 'category_shop` cs
                      ON cs.id_category = c.id_category AND cs.id_shop = ' . $idShop . '
                 WHERE c.active = 1 AND c.id_category > 1
-                ORDER BY c.level_depth ASC, cl.name ASC';
+                ORDER BY c.nleft ASC';
         $rows = Db::getInstance()->executeS($sql) ?: [];
 
         return new JsonResponse([

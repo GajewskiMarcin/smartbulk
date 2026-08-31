@@ -182,7 +182,7 @@ function CategoriesValue({ leaf, onChange }: Omit<Props, 'field'>) {
   const q = useQuery({ queryKey: ['lookup', 'categories'], queryFn: lookupsApi.categories });
   const options = (q.data ?? []).map((c) => ({
     id: c.id_category,
-    label: '— '.repeat(Math.max(0, c.level_depth - 2)) + c.name,
+    label: '— '.repeat(Math.max(0, c.level_depth - 1)) + c.name,
     sublabel: `#${c.id_category}`,
   }));
   const value = Array.isArray(leaf.value) ? leaf.value.map(Number) : [];

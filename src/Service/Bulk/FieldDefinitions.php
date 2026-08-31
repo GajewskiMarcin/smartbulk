@@ -68,6 +68,11 @@ final class FieldDefinitions
                     ['value' => 'refurbished', 'label' => $l('Refurbished')],
                 ]],
             ['id' => 'on_sale',              'label' => $l('Display "On sale!" flag'), 'group' => 'basic', 'type' => 'bool',   'lang' => false, 'operators' => self::BOOL_OPERATORS],
+            // Tags (virtual field — writes to product_tag; tags are per-language). 'add' links
+            // the given tag(s) to each product, creating any that don't exist yet; 'remove'
+            // unlinks the given tag(s); 'clear' removes all tags. Handled specially in
+            // BulkEditorService (applyTags / diffTags), undoable via undoTags.
+            ['id' => '_tags', 'label' => $l('Tags'), 'group' => 'basic', 'type' => 'tags', 'lang' => true, 'operators' => ['add', 'remove', 'clear', 'skip']],
 
             // ----- Descriptions -----
             ['id' => 'description_short',    'label' => $l('Short description'),   'group' => 'content', 'type' => 'text',    'lang' => true,  'operators' => self::AI_TEXT_OPERATORS, 'html' => true],
@@ -175,6 +180,9 @@ final class FieldDefinitions
         // Virtual fields (custom apply logic, not a plain UPDATE)
         if ($id === '_feature') {
             return 'feature_product';
+        }
+        if ($id === '_tags') {
+            return 'product_tag';
         }
         // product_lang-only
         if (in_array($id, [

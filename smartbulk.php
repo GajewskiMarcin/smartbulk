@@ -49,7 +49,7 @@ class SmartBulk extends Module
     public const MODULE_NAME = 'smartbulk';
 
     /** @var string Single source of truth for the module version (mirrored in config.xml). */
-    public const VERSION = '1.0.4';
+    public const VERSION = '1.0.5';
 
     /** @var string[] Hooks to register on install */
     private const HOOKS = [
@@ -341,6 +341,7 @@ class SmartBulk extends Module
             'bulk.process_next' => $this->l('Process next {n}', 'smartbulk'),
             // ---- Operators & groups (new: features) ----
             'bulk.op.add' => $this->l('Add value', 'smartbulk'),
+            'bulk.op.remove' => $this->l('Remove value', 'smartbulk'),
             'bulk.group.features' => $this->l('Features', 'smartbulk'),
             // ---- Feature value picker ----
             'bulk.feature.loading' => $this->l('Loading features…', 'smartbulk'),
@@ -354,6 +355,13 @@ class SmartBulk extends Module
             'bulk.feature.hint' => $this->l('Each matching product will get {feature} = {value}.', 'smartbulk'),
             'bulk.feature.hint_custom' => $this->l('A custom feature value will be created.', 'smartbulk'),
             'bulk.feature.hint_multi' => $this->l('PrestaShop allows multiple values for the same feature, so existing values are kept.', 'smartbulk'),
+            // ---- Tags picker (virtual _tags field) ----
+            'bulk.tags.add_ph' => $this->l('Type a tag and press Enter…', 'smartbulk'),
+            'bulk.tags.remove_ph' => $this->l('Type a tag to remove and press Enter…', 'smartbulk'),
+            'bulk.tags.remove_chip' => $this->l('Remove', 'smartbulk'),
+            'bulk.tags.clear_warn' => $this->l('All tags will be removed from each matching product (in the selected language).', 'smartbulk'),
+            'bulk.tags.add_hint' => $this->l('Each matching product gets these tags. Tags that do not exist yet are created; ones the product already has are skipped.', 'smartbulk'),
+            'bulk.tags.remove_hint' => $this->l('These tags are unlinked from each matching product. The tags themselves stay in your shop.', 'smartbulk'),
             'bulk.section_filter_title' => $this->l('Filter conditions', 'smartbulk'),
             'bulk.section_filter_subtitle' => $this->l('Combine conditions with AND/OR. Use groups for nested logic.', 'smartbulk'),
             'bulk.section_actions_title' => $this->l('Step 2 · Define actions', 'smartbulk'),
