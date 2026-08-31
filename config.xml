@@ -2,7 +2,7 @@
 <module>
     <name>smartbulk</name>
     <displayName><![CDATA[SmartBulk]]></displayName>
-    <version><![CDATA[1.0.5]]></version>
+    <version><![CDATA[1.0.6]]></version>
     <description><![CDATA[Advanced bulk product management with AI assistant — mass edit products, generate meta / descriptions / alt text with Claude or OpenAI, run health audits, automate workflows.]]></description>
     <author><![CDATA[marcingajewski.pl]]></author>
     <tab><![CDATA[administration]]></tab>

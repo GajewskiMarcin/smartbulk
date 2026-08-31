@@ -212,6 +212,36 @@ final class BulkEditorService
     }
 
     /**
+     * From a selection, return only the product ids that the given actions would ACTUALLY
+     * change — using the same batched diff logic as the preview. Lets createBatch snapshot
+     * just the products that need work, so the batch (and its progress bar) reflect real
+     * changes instead of grinding through the whole selection.
+     *
+     * @param int[] $productIds
+     * @param array<int,array<string,mixed>> $actions
+     * @return int[]
+     */
+    private function changingProductIds(array $productIds, int $idShop, int $idLang, array $actions): array
+    {
+        $changing = [];
+        foreach (array_chunk(array_values($productIds), 2000) as $chunk) {
+            $loaded = $this->loadProductFieldsBatch($chunk, $idShop, $idLang);
+            foreach ($chunk as $pid) {
+                $pid     = (int) $pid;
+                $product = $loaded[$pid] ?? null;
+                if ($product === null) {
+                    continue;
+                }
+                $d = $this->diffProductFromData($pid, $product, $actions, $idShop, $idLang);
+                if (!empty($d['changes'])) {
+                    $changing[] = $pid;
+                }
+            }
+        }
+        return $changing;
+    }
+
+    /**
      * Batch version of loadProductFields — loads all given products in two queries
      * (fields + stock) instead of two per product.
      *
@@ -410,12 +440,29 @@ final class BulkEditorService
         $lang = $idLang ?? (int) $ctx->language->id;
         $shop = (int) $ctx->shop->id;
 
+        // Narrow the batch to products the actions will ACTUALLY change, so the batch —
+        // and its progress bar — reflect real work instead of grinding through the whole
+        // selection (e.g. "add tag X" to 2500 products where 2450 already have it → a batch
+        // of ~50, not 2500). Same change-detection as the preview. Only when the scope is
+        // exactly analyzable (<= 100000, the preview's exact-count threshold); above that the
+        // preview extrapolates and we can't know the exact set, so the full selection is kept
+        // and processed with progress as before.
+        $originalScope = count($productIds);
+        if ($originalScope <= 100000) {
+            $changing = $this->changingProductIds($productIds, $shop, $lang, $actions);
+            if (!$changing) {
+                throw new InvalidArgumentException('Nothing to change — every selected product already matches the requested actions.');
+            }
+            $productIds = $changing;
+        }
+
         $idBatch = $this->masseditRepo->create([
             'id_shop'          => $shop,
             'segment_snapshot' => [
-                'product_ids' => $productIds,
-                'filter_spec' => $filterSpec,
-                'id_lang'     => $lang,
+                'product_ids'    => $productIds,
+                'filter_spec'    => $filterSpec,
+                'id_lang'        => $lang,
+                'original_scope' => $originalScope,
             ],
             'action_snapshot'  => [
                 'kind'    => 'bulk_edit',

@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.6] — 2026-08-31
+
+### Changed
+- **Bulk batches now process only the products that actually change.** Previously a batch
+  snapshotted the whole selection and walked every product (e.g. "add tag X" to 2500 products
+  where 2450 already had it ground through all 2500, changing 50) — the progress bar counted
+  to the full selection. The batch now pre-filters at creation to the products the actions will
+  really change, so the total and progress bar reflect real work (~50, not 2500) and it finishes
+  fast. No-op products were never modified before either; this is a speed and clarity fix. The
+  original selection size is kept in the batch snapshot (`original_scope`) for reference. For
+  selections above 100k — where the preview extrapolates and the exact set isn't known — the full
+  selection is still processed as before.
+
 ## [1.0.5] — 2026-08-31
 
 ### Added

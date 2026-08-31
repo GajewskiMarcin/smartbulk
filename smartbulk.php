@@ -49,7 +49,7 @@ class SmartBulk extends Module
     public const MODULE_NAME = 'smartbulk';
 
     /** @var string Single source of truth for the module version (mirrored in config.xml). */
-    public const VERSION = '1.0.5';
+    public const VERSION = '1.0.6';
 
     /** @var string[] Hooks to register on install */
     private const HOOKS = [
