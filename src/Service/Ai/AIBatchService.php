@@ -19,6 +19,7 @@ use Context;
 use InvalidArgumentException;
 use SmartBulk\Repository\MasseditRepository;
 use SmartBulk\Repository\PromptRepository;
+use SmartBulk\Service\Lang;
 
 final class AIBatchService
 {
@@ -45,17 +46,17 @@ final class AIBatchService
     ): array {
         $prompt = $this->promptRepo->findPrompt($idPrompt);
         if ($prompt === null) {
-            throw new InvalidArgumentException("Prompt {$idPrompt} not found");
+            throw new InvalidArgumentException(Lang::t('Prompt {id} not found', ['id' => $idPrompt]));
         }
         $versionId = $idVersion ?? ($prompt['current_version'] !== null ? (int) $prompt['current_version'] : 0);
         if ($versionId === 0) {
-            throw new InvalidArgumentException('Prompt has no active version');
+            throw new InvalidArgumentException(Lang::t('Prompt has no active version'));
         }
 
         $productIds = array_values(array_unique(array_map('intval', $productIds)));
         $productIds = array_values(array_filter($productIds, static fn (int $id) => $id > 0));
         if (!$productIds) {
-            throw new InvalidArgumentException('Empty product list');
+            throw new InvalidArgumentException(Lang::t('Empty product list'));
         }
 
         $ctx = Context::getContext();
@@ -98,7 +99,7 @@ final class AIBatchService
     {
         $batch = $this->masseditRepo->find($idBatch);
         if ($batch === null) {
-            throw new InvalidArgumentException("Batch {$idBatch} not found");
+            throw new InvalidArgumentException(Lang::t('Batch {id} not found', ['id' => $idBatch]));
         }
 
         // Don't resume a finalised/cancelled batch (guards against late process-next calls).
@@ -112,7 +113,7 @@ final class AIBatchService
         $snapshot = $batch['segment_snapshot'] ? json_decode((string) $batch['segment_snapshot'], true) : [];
         if (!is_array($snapshot) || empty($snapshot['product_ids'])) {
             $this->masseditRepo->updateStatus($idBatch, 'failed');
-            throw new InvalidArgumentException('Batch has no product list');
+            throw new InvalidArgumentException(Lang::t('Batch has no product list'));
         }
 
         $idLang     = (int) ($snapshot['id_lang'] ?? Context::getContext()->language->id);
@@ -179,7 +180,7 @@ final class AIBatchService
     {
         $batch = $this->masseditRepo->find($idBatch);
         if ($batch === null) {
-            throw new InvalidArgumentException("Batch {$idBatch} not found");
+            throw new InvalidArgumentException(Lang::t('Batch {id} not found', ['id' => $idBatch]));
         }
 
         $snapshot = $batch['segment_snapshot'] ? json_decode((string) $batch['segment_snapshot'], true) : [];
@@ -234,16 +235,16 @@ final class AIBatchService
     {
         $batch = $this->masseditRepo->find($idBatch);
         if ($batch === null) {
-            throw new InvalidArgumentException("Batch {$idBatch} not found");
+            throw new InvalidArgumentException(Lang::t('Batch {id} not found', ['id' => $idBatch]));
         }
         if ((string) $batch['status'] === 'undone') {
-            throw new InvalidArgumentException('An undone batch cannot be resumed');
+            throw new InvalidArgumentException(Lang::t('An undone batch cannot be resumed'));
         }
         $snapshot = $batch['segment_snapshot'] ? json_decode((string) $batch['segment_snapshot'], true) : [];
         $total = is_array($snapshot) ? count($snapshot['product_ids'] ?? []) : 0;
         $done  = count($this->masseditRepo->processedProductIds($idBatch));
         if ($done >= $total) {
-            throw new InvalidArgumentException('Nothing left to resume');
+            throw new InvalidArgumentException(Lang::t('Nothing left to resume'));
         }
         $this->masseditRepo->updateStatus($idBatch, 'running');
         return $this->getStatus($idBatch);

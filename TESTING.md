@@ -6,6 +6,10 @@ a simple `curl`-based API smoke script for sanity-checking the routing layer.
 > No PHPUnit / Behat setup yet. Reasoning: SmartBulk is installed inside a
 > running PrestaShop, so meaningful tests need a full PS bootstrap which is
 > heavy to wire up. A `make test` story is on the v1.1 wishlist.
+>
+> Exception: pure-PHP code with no PrestaShop dependency has plain-PHP unit
+> tests under `tests/unit/` — run each file, e.g.
+> `for f in tests/unit/*.php; do php "$f"; done`.
 
 ---
 

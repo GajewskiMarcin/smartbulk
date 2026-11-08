@@ -271,7 +271,7 @@ export default function FilterBuilder({ value, onChange }: FilterBuilderProps) {
             return (
               <div key={groupKey}>
                 <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground mb-1.5">
-                  {CONTENT_GAP_GROUPS[groupKey]}
+                  {t('gap.group.' + groupKey, CONTENT_GAP_GROUPS[groupKey])}
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-1.5">
                   {items.map((gap) => {
@@ -279,7 +279,7 @@ export default function FilterBuilder({ value, onChange }: FilterBuilderProps) {
                     return (
                       <Checkbox
                         key={gap.value}
-                        label={gap.label}
+                        label={t('gap.' + gap.value, gap.label)}
                         checked={selected}
                         onChange={(e) => {
                           const current = contentGaps?.value ?? [];

@@ -84,7 +84,7 @@ export default function ActionBuilder({ fields, value, onChange, globalLang = 'a
     <div className="flex flex-col gap-3">
       {value.length === 0 && (
         <div className="border border-dashed border-border rounded-md p-6 text-center text-muted-foreground text-[13px]">
-          No actions yet. Click <strong>+ Add field</strong> below to start building your edit.
+          {t('ab.empty_before', 'No actions yet. Click')} <strong>{t('ab.add_field', '+ Add field')}</strong> {t('ab.empty_after', 'below to start building your edit.')}
         </div>
       )}
 
@@ -106,7 +106,7 @@ export default function ActionBuilder({ fields, value, onChange, globalLang = 'a
 
       <div className="flex items-center gap-2 relative">
         <Button onClick={() => setPickerOpen((o) => !o)}>
-          {pickerOpen ? 'Close picker' : '+ Add field'}
+          {pickerOpen ? t('ab.close_picker', 'Close picker') : t('ab.add_field', '+ Add field')}
         </Button>
         <TemplatePicker onPick={addFromTemplate} currentActions={value} />
         <div className="flex-1" />
@@ -114,7 +114,7 @@ export default function ActionBuilder({ fields, value, onChange, globalLang = 'a
           <div className="absolute left-0 top-[calc(100%+4px)] z-20 bg-white border border-border rounded-md shadow-lg w-[380px] max-h-[400px] overflow-hidden flex flex-col">
             <input
               className="px-3 py-2 text-[13px] border-b border-border focus:outline-none"
-              placeholder="Search fields…"
+              placeholder={t('ab.search_fields', 'Search fields…')}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               autoFocus
@@ -138,7 +138,7 @@ export default function ActionBuilder({ fields, value, onChange, globalLang = 'a
                         <div className="min-w-0">
                           <div className="font-medium truncate">{f.label}</div>
                           <div className="text-[10px] text-muted-foreground">
-                            {f.type}{f.lang ? ' · multilang' : ''}
+                            {f.type}{f.lang ? ' · ' + t('ab.multilang', 'multilang') : ''}
                           </div>
                         </div>
                         {f.unit && <span className="text-[10px] text-muted-foreground flex-shrink-0">{f.unit}</span>}
@@ -149,7 +149,7 @@ export default function ActionBuilder({ fields, value, onChange, globalLang = 'a
               })}
               {Object.keys(availableByGroup).length === 0 && (
                 <div className="px-3 py-6 text-[12px] text-muted-foreground text-center">
-                  {fields.length === value.length ? 'All fields already added.' : 'No fields match.'}
+                  {fields.length === value.length ? t('ab.all_fields_added', 'All fields already added.') : t('ab.no_fields_match', 'No fields match.')}
                 </div>
               )}
             </div>
@@ -181,14 +181,14 @@ function ActionRow({
         <div className="font-semibold text-[13px] min-w-0 flex-1">
           {def.label}
           <span className="ml-2 text-[10px] font-normal text-muted-foreground uppercase">
-            {def.type}{def.lang ? ' · multilang' : ''}{def.unit ? ` · ${def.unit}` : ''}
+            {def.type}{def.lang ? ' · ' + t('ab.multilang', 'multilang') : ''}{def.unit ? ` · ${def.unit}` : ''}
           </span>
         </div>
         <button
           type="button"
           onClick={onRemove}
           className="text-muted-foreground hover:text-destructive text-[16px] leading-none"
-          title="Remove action"
+          title={t('ab.remove_action', 'Remove action')}
         >
           ×
         </button>
@@ -228,7 +228,7 @@ function ActionRow({
 
       {def.html && action.operator !== 'skip' && (
         <div className="mt-2 text-[11px] text-amber-700">
-          ⚠ HTML field — use &lt;p&gt;, &lt;strong&gt;, &lt;ul&gt;, &lt;li&gt; tags where needed.
+          {t('ab.html_hint', '⚠ HTML field — use <p>, <strong>, <ul>, <li> tags where needed.')}
         </div>
       )}
 
@@ -249,7 +249,7 @@ function FieldHints({ def, action }: { def: FieldDefinition; action: BulkAction 
     try {
       const re = new RegExp(def.pattern);
       if (!re.test(action.value)) {
-        hints.push({ tone: 'error', text: `Value does not match the required format.` });
+        hints.push({ tone: 'error', text: t('ab.format_mismatch', 'Value does not match the required format.') });
       }
     } catch {
       /* ignore bad pattern */
@@ -262,8 +262,8 @@ function FieldHints({ def, action }: { def: FieldDefinition; action: BulkAction 
     const warnAt = def.char_limit_warn ?? Math.floor(limit * 0.9);
     const tone = len > limit ? 'error' : len >= warnAt ? 'warn' : 'info';
     const text = len > limit
-      ? `${len} / ${limit} chars — value will be truncated to ${limit}.`
-      : `${len} / ${limit} chars${tone === 'warn' ? ' — approaching the limit.' : ''}`;
+      ? t2('ab.chars_truncated', '{len} / {limit} chars — value will be truncated to {limit}.', { len, limit })
+      : t2('ab.chars_count', '{len} / {limit} chars', { len, limit }) + (tone === 'warn' ? t('ab.chars_near_limit', ' — approaching the limit.') : '');
     hints.push({ tone, text });
   }
 
@@ -279,7 +279,9 @@ function FieldHints({ def, action }: { def: FieldDefinition; action: BulkAction 
   if (def.warn_same_value_on_batch && op === 'set' && typeof action.value === 'string' && action.value !== '') {
     hints.push({
       tone: 'warn',
-      text: `⚠ "Set to" applies the same value to every product — ${def.id === 'reference' ? 'duplicate SKUs will be created' : 'duplicate codes will be created'}. Use "Replace" or skip on a batch unless intentional.`,
+      text: def.id === 'reference'
+        ? t('ab.same_value_skus', '⚠ "Set to" applies the same value to every product — duplicate SKUs will be created. Use "Replace" or skip on a batch unless intentional.')
+        : t('ab.same_value_codes', '⚠ "Set to" applies the same value to every product — duplicate codes will be created. Use "Replace" or skip on a batch unless intentional.'),
     });
   }
 
@@ -328,16 +330,16 @@ function LookupSelect({
   });
 
   if (query.isLoading) {
-    return <div className="text-[12px] text-muted-foreground py-2 px-3">Loading…</div>;
+    return <div className="text-[12px] text-muted-foreground py-2 px-3">{t('common.loading', 'Loading…')}</div>;
   }
   if (query.isError) {
-    return <div className="text-[12px] text-red-700 py-2 px-3">Failed to load list.</div>;
+    return <div className="text-[12px] text-red-700 py-2 px-3">{t('ab.list_load_failed', 'Failed to load list.')}</div>;
   }
   const items = query.data ?? [];
   return (
     <Select value={value} onChange={(e) => onChange(e.target.value)}>
-      <option value="">— select —</option>
-      {kind === 'tax_rules' && <option value="0">No tax</option>}
+      <option value="">{t('ab.select', '— select —')}</option>
+      {kind === 'tax_rules' && <option value="0">{t('cond.no_tax', 'No tax')}</option>}
       {items.map((it) => (
         <option key={it.id} value={String(it.id)}>{it.label}</option>
       ))}
@@ -366,17 +368,17 @@ function renderValueInput(
   if (op === 'skip' || op === 'clear') {
     return (
       <div className="text-[12px] text-muted-foreground py-2 px-3">
-        {op === 'skip' ? 'No change.' : 'Field will be cleared.'}
+        {op === 'skip' ? t('ab.no_change', 'No change.') : t('ab.will_clear', 'Field will be cleared.')}
       </div>
     );
   }
 
   if (op === 'generate_from_name') {
     const msg = def.id === 'meta_title'
-      ? `Each product's meta title will be set to its name, truncated to ${def.char_limit ?? 60} characters. No value needed.`
+      ? t2('ab.gen_meta_title', "Each product's meta title will be set to its name, truncated to {n} characters. No value needed.", { n: def.char_limit ?? 60 })
       : def.id === 'link_rewrite'
-        ? 'The URL will be auto-generated per product from its name in the selected language (same behavior as the "Generate from name" button in PrestaShop\'s product form). No value needed.'
-        : 'The value will be auto-generated per product from its name. No value needed.';
+        ? t('ab.gen_link_rewrite', 'The URL will be auto-generated per product from its name in the selected language (same behavior as the "Generate from name" button in PrestaShop\'s product form). No value needed.')
+        : t('ab.gen_from_name', 'The value will be auto-generated per product from its name. No value needed.');
     return (
       <div className="text-[12px] bg-amber-50 border border-amber-200 text-amber-900 rounded-md px-3 py-2 leading-relaxed">
         {msg}
@@ -387,9 +389,7 @@ function renderValueInput(
   if (op === 'generate_from_short_desc') {
     return (
       <div className="text-[12px] bg-amber-50 border border-amber-200 text-amber-900 rounded-md px-3 py-2 leading-relaxed">
-        Each product's meta description will be generated from its short description (HTML stripped),
-        truncated to {def.char_limit ?? 160} characters. Falls back to product name if short description is empty.
-        No value needed.
+        {t2('ab.gen_from_short_desc', "Each product's meta description will be generated from its short description (HTML stripped), truncated to {n} characters. Falls back to product name if short description is empty. No value needed.", { n: def.char_limit ?? 160 })}
       </div>
     );
   }
@@ -408,8 +408,7 @@ function renderValueInput(
           onChange={(pid, vid) => onChange({ prompt_id: pid, prompt_version_id: vid })}
         />
         <div className="text-[11px] text-muted-foreground leading-relaxed">
-          Each matching product will be processed by the picked prompt at apply time.
-          Preview shows a placeholder — real text is generated during Step 4.
+          {t('ab.ai_generate_hint', 'Each matching product will be processed by the picked prompt at apply time. Preview shows a placeholder — real text is generated during Step 4.')}
         </div>
       </div>
     );
@@ -419,12 +418,12 @@ function renderValueInput(
     return (
       <div className="grid grid-cols-2 gap-2">
         <Input
-          placeholder="Find"
+          placeholder={t('ab.find', 'Find')}
           value={(action.find ?? '') as string}
           onChange={(e) => onChange({ find: e.target.value })}
         />
         <Input
-          placeholder="Replace with"
+          placeholder={t('ab.replace_with', 'Replace with')}
           value={(action.replace ?? '') as string}
           onChange={(e) => onChange({ replace: e.target.value })}
         />
@@ -439,17 +438,17 @@ function renderValueInput(
           value={(action.math_op ?? '+') as MathOp}
           onChange={(e) => onChange({ math_op: e.target.value as MathOp })}
         >
-          <option value="+">+ add</option>
-          <option value="-">− subtract</option>
-          <option value="*">× multiply</option>
-          <option value="/">÷ divide</option>
+          <option value="+">{t('ab.math_add', '+ add')}</option>
+          <option value="-">{t('ab.math_subtract', '− subtract')}</option>
+          <option value="*">{t('ab.math_multiply', '× multiply')}</option>
+          <option value="/">{t('ab.math_divide', '÷ divide')}</option>
           <option value="+%">+ %</option>
           <option value="-%">− %</option>
         </Select>
         <Input
           type="number"
           step="any"
-          placeholder="Value"
+          placeholder={t('ab.value', 'Value')}
           value={action.math_value ?? ''}
           onChange={(e) => onChange({ math_value: e.target.value === '' ? undefined : Number(e.target.value) })}
         />
@@ -464,8 +463,8 @@ function renderValueInput(
         value={action.value === true || action.value === 'true' ? 'true' : 'false'}
         onChange={(e) => onChange({ value: e.target.value === 'true' })}
       >
-        <option value="true">Yes</option>
-        <option value="false">No</option>
+        <option value="true">{t('ab.yes', 'Yes')}</option>
+        <option value="false">{t('ab.no', 'No')}</option>
       </Select>
     );
   }
@@ -511,13 +510,13 @@ function renderValueInput(
         'focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary',
         'min-h-[72px] resize-y'
       )}
-      placeholder={op === 'set' ? 'New value' : op === 'append' ? 'Text to append' : 'Text to prepend'}
+      placeholder={op === 'set' ? t('ab.new_value', 'New value') : op === 'append' ? t('ab.text_append', 'Text to append') : t('ab.text_prepend', 'Text to prepend')}
       value={(action.value as string) ?? ''}
       onChange={(e) => onChange({ value: e.target.value })}
     />
   ) : (
     <Input
-      placeholder={op === 'set' ? 'New value' : op === 'append' ? 'Text to append' : 'Text to prepend'}
+      placeholder={op === 'set' ? t('ab.new_value', 'New value') : op === 'append' ? t('ab.text_append', 'Text to append') : t('ab.text_prepend', 'Text to prepend')}
       value={(action.value as string) ?? ''}
       onChange={(e) => onChange({ value: e.target.value })}
     />
@@ -548,10 +547,10 @@ function ActionLanguage({
 
   const globalLabel =
     globalLang === 'all'
-      ? `all languages (${langs.length})`
+      ? t2('ab.all_languages_n', 'all languages ({n})', { n: langs.length })
       : (() => {
           const l = langs.find((x) => x.id_lang === globalLang);
-          return l ? `${l.name} (${l.iso_code.toUpperCase()})` : `lang ${globalLang}`;
+          return l ? `${l.name} (${l.iso_code.toUpperCase()})` : t2('ab.lang_n', 'lang {n}', { n: globalLang });
         })();
 
   return (
@@ -559,19 +558,19 @@ function ActionLanguage({
       {!isOverride ? (
         <>
           <span className="text-muted-foreground">
-            Uses <strong className="text-slate-700">{globalLabel}</strong> from global tabs.
+            {t('ab.uses', 'Uses')} <strong className="text-slate-700">{globalLabel}</strong> {t('ab.from_global_tabs', 'from global tabs.')}
           </span>
           <button
             type="button"
             className="text-primary hover:underline"
             onClick={() => onChange(langs[0].id_lang)}
           >
-            Override for this action
+            {t('ab.override', 'Override for this action')}
           </button>
         </>
       ) : (
         <>
-          <span className="text-muted-foreground">Override:</span>
+          <span className="text-muted-foreground">{t('ab.override_label', 'Override:')}</span>
           <Select
             value={String(value)}
             onChange={(e) => onChange(Number(e.target.value))}
@@ -588,7 +587,7 @@ function ActionLanguage({
             className="text-primary hover:underline"
             onClick={() => onChange(null)}
           >
-            Use global
+            {t('ab.use_global', 'Use global')}
           </button>
         </>
       )}
@@ -867,15 +866,15 @@ function CopyFromPicker({
   return (
     <div className="flex flex-col gap-1.5">
       <Select value={value ?? ''} onChange={(e) => onChange(e.target.value)}>
-        <option value="">— pick source field —</option>
+        <option value="">{t('ab.pick_source', '— pick source field —')}</option>
         {sources.map((s) => (
-          <option key={s.value} value={s.value}>{s.label}</option>
+          <option key={s.value} value={s.value}>{t('ab.src.' + s.value, s.label)}</option>
         ))}
       </Select>
       <div className="text-[11px] text-muted-foreground leading-relaxed">
-        Each product's <strong>{def.label}</strong> will be set to its{' '}
-        <strong>{value ? (sources.find((s) => s.value === value)?.label ?? value) : '…'}</strong>.
-        Empty source values will leave the target unchanged (flagged in preview).
+        {t('ab.copy_before', "Each product's")} <strong>{def.label}</strong> {t('ab.copy_middle', 'will be set to its')}{' '}
+        <strong>{value ? t('ab.src.' + value, sources.find((s) => s.value === value)?.label ?? value) : '…'}</strong>
+        {t('ab.copy_after', '. Empty source values will leave the target unchanged (flagged in preview).')}
       </div>
     </div>
   );

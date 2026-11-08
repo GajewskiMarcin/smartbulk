@@ -18,6 +18,7 @@ namespace SmartBulk\Service\History;
 
 use Db;
 use InvalidArgumentException;
+use SmartBulk\Service\Lang;
 
 final class HistoryService
 {
@@ -87,7 +88,7 @@ final class HistoryService
              WHERE b.id_massedit = " . (int) $idBatch
         );
         if (!$row) {
-            throw new InvalidArgumentException("Batch {$idBatch} not found");
+            throw new InvalidArgumentException(Lang::t('Batch {id} not found', ['id' => $idBatch]));
         }
 
         $batch = $this->normalizeRow($row);
@@ -163,14 +164,14 @@ final class HistoryService
             foreach ($action['actions'] ?? [] as $a) {
                 if (!empty($a['field'])) $fields[] = (string) $a['field'];
             }
-            $label = $n === 1 ? '1 field' : "{$n} fields";
+            $label = $n === 1 ? Lang::t('1 field') : Lang::t('{n} fields', ['n' => $n]);
             if ($fields) $label .= ' · ' . implode(', ', array_slice($fields, 0, 3)) . (count($fields) > 3 ? '…' : '');
             return $label;
         }
         if ($kind === 'ai_batch') {
             $prompt = is_array($action['prompt'] ?? null) ? ((string) ($action['prompt']['name'] ?? '')) : '';
             $taskType = is_array($action['prompt'] ?? null) ? (string) ($action['prompt']['task_type'] ?? '') : '';
-            return $prompt !== '' ? "Prompt: {$prompt}" . ($taskType ? " ({$taskType})" : '') : 'AI batch';
+            return $prompt !== '' ? Lang::t('Prompt: {name}', ['name' => $prompt]) . ($taskType ? " ({$taskType})" : '') : Lang::t('AI batch');
         }
         return '—';
     }
@@ -180,9 +181,9 @@ final class HistoryService
     {
         if (!is_array($seg)) return '—';
         if (!empty($seg['product_ids']) && is_array($seg['product_ids'])) {
-            return count($seg['product_ids']) . ' products';
+            return Lang::t('{n} products', ['n' => count($seg['product_ids'])]);
         }
-        if (!empty($seg['filter_spec'])) return 'Filter spec';
+        if (!empty($seg['filter_spec'])) return Lang::t('Filter spec');
         return '—';
     }
 

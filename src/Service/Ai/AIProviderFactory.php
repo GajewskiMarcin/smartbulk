@@ -15,6 +15,7 @@ declare(strict_types=1);
 namespace SmartBulk\Service\Ai;
 
 use InvalidArgumentException;
+use SmartBulk\Service\Lang;
 
 final class AIProviderFactory
 {
@@ -29,7 +30,7 @@ final class AIProviderFactory
         return match ($name) {
             'claude' => $this->claude,
             'openai' => $this->openai,
-            default  => throw new InvalidArgumentException("Unknown AI provider: {$name}"),
+            default  => throw new InvalidArgumentException(Lang::t('Unknown AI provider: {name}', ['name' => $name])),
         };
     }
 }

@@ -14,6 +14,7 @@ namespace SmartBulk\Controller\Api;
 use Context;
 use SmartBulk\Controller\CompatAdminController;
 use SmartBulk\Repository\SegmentRepository;
+use SmartBulk\Service\Lang;
 use SmartBulk\Service\Segment\PresetSegments;
 use SmartBulk\Service\Segment\SegmentService;
 use Symfony\Component\HttpFoundation\JsonResponse;
@@ -91,7 +92,7 @@ final class SegmentController extends CompatAdminController
         $payload = $this->jsonBody($request);
         $name = trim((string) ($payload['name'] ?? ''));
         if ($name === '') {
-            return new JsonResponse(['ok' => false, 'error' => 'Name is required'], 422);
+            return new JsonResponse(['ok' => false, 'error' => Lang::t('Name is required')], 422);
         }
         $conditions = $payload['conditions'] ?? ['filters' => []];
         if (!is_array($conditions)) {

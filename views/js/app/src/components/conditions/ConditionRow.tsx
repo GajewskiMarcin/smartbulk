@@ -63,7 +63,7 @@ export default function ConditionRow({ catalog, leaf, onChange, onRemove }: Prop
           disabled={!field}
         >
           {(field?.operators ?? ['equals']).map((op) => (
-            <option key={op} value={op}>{OPERATOR_LABELS[op] ?? op}</option>
+            <option key={op} value={op}>{t('cond.op.' + op, OPERATOR_LABELS[op] ?? op)}</option>
           ))}
         </select>
 

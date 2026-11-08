@@ -1,0 +1,6 @@
+# Left out of `git archive`, which builds the release zip (.github/workflows/release.yml):
+# development-only files a shop does not need.
+.github export-ignore
+.gitattributes export-ignore
+.gitignore export-ignore
+tests export-ignore

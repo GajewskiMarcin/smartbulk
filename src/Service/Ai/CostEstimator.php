@@ -19,6 +19,7 @@ use Context;
 use Db;
 use InvalidArgumentException;
 use SmartBulk\Repository\PromptRepository;
+use SmartBulk\Service\Lang;
 
 final class CostEstimator
 {
@@ -70,12 +71,12 @@ final class CostEstimator
     {
         $prompt = $this->promptRepo->findPrompt($idPrompt);
         if ($prompt === null) {
-            throw new InvalidArgumentException("Prompt {$idPrompt} not found");
+            throw new InvalidArgumentException(Lang::t('Prompt {id} not found', ['id' => $idPrompt]));
         }
         $versionId = $idVersion ?? ($prompt['current_version'] !== null ? (int) $prompt['current_version'] : 0);
-        if ($versionId === 0) throw new InvalidArgumentException('Prompt has no active version');
+        if ($versionId === 0) throw new InvalidArgumentException(Lang::t('Prompt has no active version'));
         $version = $this->promptRepo->findVersion($versionId);
-        if ($version === null) throw new InvalidArgumentException('Prompt version not found');
+        if ($version === null) throw new InvalidArgumentException(Lang::t('Prompt version not found'));
 
         $model    = (string) $version['model'];
         $taskType = (string) $prompt['task_type'];

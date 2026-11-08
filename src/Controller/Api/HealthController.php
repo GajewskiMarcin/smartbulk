@@ -13,6 +13,7 @@ namespace SmartBulk\Controller\Api;
 
 use SmartBulk\Controller\CompatAdminController;
 use SmartBulk\Service\Health\ContentHealthService;
+use SmartBulk\Service\Lang;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 
@@ -42,7 +43,7 @@ final class HealthController extends CompatAdminController
         $idShop  = $request->query->has('id_shop') ? (int) $request->query->get('id_shop') : null;
 
         if ($problem === '') {
-            return new JsonResponse(['ok' => false, 'error' => 'Missing problem id'], 422);
+            return new JsonResponse(['ok' => false, 'error' => Lang::t('Missing problem id')], 422);
         }
 
         try {
@@ -82,7 +83,7 @@ final class HealthController extends CompatAdminController
         $idShop  = $request->query->has('id_shop') ? (int) $request->query->get('id_shop') : null;
 
         if ($problem === '') {
-            return new JsonResponse(['ok' => false, 'error' => 'Missing problem id'], 422);
+            return new JsonResponse(['ok' => false, 'error' => Lang::t('Missing problem id')], 422);
         }
 
         try {

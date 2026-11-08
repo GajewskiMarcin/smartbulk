@@ -346,7 +346,7 @@ function ScheduleFormModal({
                 <Field label={t('scheduler.modal.target_field', 'Target field (optional)')} hint={t('scheduler.modal.target_field_hint', "Override prompt's default target field.")}>
                   <Select value={targetField} onChange={(e) => setTargetField(e.target.value)}>
                     <option value="">{t('scheduler.modal.target_field_default', '— use prompt default —')}</option>
-                    {TARGET_FIELDS.map((f) => (<option key={f.value} value={f.value}>{f.label}</option>))}
+                    {TARGET_FIELDS.map((f) => (<option key={f.value} value={f.value}>{t('ai.target.' + f.value, f.label)}</option>))}
                   </Select>
                 </Field>
                 <Field label={t('scheduler.modal.target_lang', 'Target language (optional)')} hint={t('scheduler.modal.target_lang_hint', 'For translate prompts.')}>
@@ -472,7 +472,7 @@ function CronPicker({ preset, onChange }: { preset: CronPreset; onChange: (p: Cr
               onChange={(e) => onChange({ ...preset, dow: Number(e.target.value) })}
               className="max-w-[110px]"
             >
-              {DAYS_OF_WEEK.map((d, i) => <option key={i} value={i}>{d}</option>)}
+              {DAYS_OF_WEEK.map((d, i) => <option key={i} value={i}>{t('scheduler.dow.' + i, d)}</option>)}
             </Select>
             {t('scheduler.cron.at_time', 'at')} <TimeInput hour={preset.hour} minute={preset.minute} onChange={(h, m) => onChange({ ...preset, hour: h, minute: m })} />
           </span>

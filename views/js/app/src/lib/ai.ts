@@ -1,6 +1,7 @@
 // SmartBulk — AI API client + types
 
 import { api } from './api';
+import { t } from './i18n';
 import type { Prompt, Provider, TaskType } from './prompts';
 
 export interface ProductRef {
@@ -82,19 +83,19 @@ export const aiApi = {
     target_lang?: number;
   }) =>
     api.post<OkWrap<AiRun>>(`${AI_BASE}/generate`, input).then((r) => {
-      if (!r.run) throw new Error(r.error || 'No run returned');
+      if (!r.run) throw new Error(r.error || t('err.no_run_returned', 'No run returned'));
       return r.run;
     }),
 
   accept: (idRun: number) =>
     api.post<OkWrap<AcceptedRun>>(`${AI_BASE}/runs/${idRun}/accept`, {}).then((r) => {
-      if (!r.run) throw new Error(r.error || 'Accept failed');
+      if (!r.run) throw new Error(r.error || t('err.accept_failed', 'Accept failed'));
       return r.run;
     }),
 
   reject: (idRun: number) =>
     api.post<OkWrap<{ id_run: number; status: 'rejected' }>>(`${AI_BASE}/runs/${idRun}/reject`, {}).then((r) => {
-      if (!r.run) throw new Error(r.error || 'Reject failed');
+      if (!r.run) throw new Error(r.error || t('err.reject_failed', 'Reject failed'));
       return r.run;
     }),
 
@@ -117,7 +118,7 @@ export const aiApi = {
         error?: string;
       }>(`${AI_BASE}/estimate`, input)
       .then((r) => {
-        if (!r.ok || !r.estimate) throw new Error(r.error || 'Estimate failed');
+        if (!r.ok || !r.estimate) throw new Error(r.error || t('err.estimate_failed', 'Estimate failed'));
         return r.estimate;
       }),
 
@@ -134,7 +135,7 @@ export const aiApi = {
     api
       .post<{ ok: boolean; batch: BatchStatus; error?: string }>(`${AI_BASE}/batch`, input)
       .then((r) => {
-        if (!r.ok || !r.batch) throw new Error(r.error || 'Could not create batch');
+        if (!r.ok || !r.batch) throw new Error(r.error || t('err.could_not_create_batch', 'Could not create batch'));
         return r.batch;
       }),
 
@@ -144,7 +145,7 @@ export const aiApi = {
         `${AI_BASE}/batch/${idBatch}${includeRuns ? '?include_runs=1' : ''}`
       )
       .then((r) => {
-        if (!r.ok || !r.batch) throw new Error(r.error || 'Could not fetch batch');
+        if (!r.ok || !r.batch) throw new Error(r.error || t('err.could_not_fetch_batch', 'Could not fetch batch'));
         return r.batch;
       }),
 
@@ -152,7 +153,7 @@ export const aiApi = {
     api
       .post<{ ok: boolean; batch: BatchStatus; error?: string }>(`${AI_BASE}/batch/${idBatch}/resume`, {})
       .then((r) => {
-        if (!r.ok || !r.batch) throw new Error(r.error || 'Resume failed');
+        if (!r.ok || !r.batch) throw new Error(r.error || t('err.resume_failed', 'Resume failed'));
         return r.batch;
       }),
 
@@ -163,7 +164,7 @@ export const aiApi = {
         {}
       )
       .then((r) => {
-        if (!r.ok || !r.batch) throw new Error(r.error || 'Processing failed');
+        if (!r.ok || !r.batch) throw new Error(r.error || t('err.processing_failed', 'Processing failed'));
         return r.batch;
       }),
 
@@ -174,7 +175,7 @@ export const aiApi = {
         {}
       )
       .then((r) => {
-        if (!r.ok || !r.result) throw new Error(r.error || 'Accept-all failed');
+        if (!r.ok || !r.result) throw new Error(r.error || t('err.accept_all_failed', 'Accept-all failed'));
         return r.result;
       }),
 
@@ -185,7 +186,7 @@ export const aiApi = {
         {}
       )
       .then((r) => {
-        if (!r.ok || !r.result) throw new Error(r.error || 'Reject-all failed');
+        if (!r.ok || !r.result) throw new Error(r.error || t('err.reject_all_failed', 'Reject-all failed'));
         return r.result;
       }),
 };

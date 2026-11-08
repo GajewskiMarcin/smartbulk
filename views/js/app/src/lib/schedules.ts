@@ -1,6 +1,7 @@
 // SmartBulk — Schedules API client + types
 
 import { api } from './api';
+import { t } from './i18n';
 
 export type JobType = 'bulk_edit' | 'ai_batch';
 
@@ -48,7 +49,7 @@ export const schedulesApi = {
     api
       .post<{ ok: boolean; schedule: Schedule; error?: string }>(BASE, input)
       .then((r) => {
-        if (!r.ok || !r.schedule) throw new Error(r.error || 'Create failed');
+        if (!r.ok || !r.schedule) throw new Error(r.error || t('err.create_failed', 'Create failed'));
         return r.schedule;
       }),
 
@@ -61,7 +62,7 @@ export const schedulesApi = {
     api
       .patch<{ ok: boolean; schedule: Schedule; error?: string }>(`${BASE}/${id}`, patch)
       .then((r) => {
-        if (!r.ok || !r.schedule) throw new Error(r.error || 'Update failed');
+        if (!r.ok || !r.schedule) throw new Error(r.error || t('err.update_failed', 'Update failed'));
         return r.schedule;
       }),
 
@@ -71,7 +72,7 @@ export const schedulesApi = {
     api
       .post<{ ok: boolean; result: RunResult; error?: string }>(`${BASE}/${id}/run-now`, {})
       .then((r) => {
-        if (!r.ok || !r.result) throw new Error(r.error || 'Run failed');
+        if (!r.ok || !r.result) throw new Error(r.error || t('err.run_failed', 'Run failed'));
         return r.result;
       }),
 };

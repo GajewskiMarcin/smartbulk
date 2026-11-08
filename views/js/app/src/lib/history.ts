@@ -1,6 +1,7 @@
 // SmartBulk — History API client + types
 
 import { api } from './api';
+import { t } from './i18n';
 
 export type BatchKind = 'bulk_edit' | 'ai_batch' | string;
 export type BatchStatus = 'pending' | 'running' | 'success' | 'partial' | 'failed' | 'undone';
@@ -84,7 +85,7 @@ export const historyApi = {
     return api
       .get<{ ok: boolean; items: BatchSummary[]; total: number; error?: string }>(`${BASE}${qs.toString() ? `?${qs}` : ''}`)
       .then((r) => {
-        if (!r.ok) throw new Error(r.error || 'List failed');
+        if (!r.ok) throw new Error(r.error || t('err.list_failed', 'List failed'));
         return { items: r.items, total: r.total };
       });
   },
@@ -93,7 +94,7 @@ export const historyApi = {
     api
       .get<{ ok: boolean; batch: BatchDetail; error?: string }>(`${BASE}/${id}`)
       .then((r) => {
-        if (!r.ok) throw new Error(r.error || 'Detail failed');
+        if (!r.ok) throw new Error(r.error || t('err.detail_failed', 'Detail failed'));
         return r.batch;
       }),
 };

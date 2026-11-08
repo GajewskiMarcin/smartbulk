@@ -23,6 +23,7 @@ use InvalidArgumentException;
 use SmartBulk\Repository\ScheduleRepository;
 use SmartBulk\Service\Ai\AIBatchService;
 use SmartBulk\Service\Bulk\BulkEditorService;
+use SmartBulk\Service\Lang;
 use SmartBulk\Service\Segment\SegmentService;
 
 final class ScheduleService
@@ -78,7 +79,7 @@ final class ScheduleService
     public function update(int $id, array $data): array
     {
         $row = $this->repo->find($id);
-        if ($row === null) throw new InvalidArgumentException("Schedule {$id} not found");
+        if ($row === null) throw new InvalidArgumentException(Lang::t('Schedule {id} not found', ['id' => $id]));
 
         $patch = [];
         if (isset($data['name']))            $patch['name'] = trim((string) $data['name']);
@@ -127,7 +128,7 @@ final class ScheduleService
     public function runNow(int $id): array
     {
         $row = $this->repo->find($id);
-        if ($row === null) throw new InvalidArgumentException("Schedule {$id} not found");
+        if ($row === null) throw new InvalidArgumentException(Lang::t('Schedule {id} not found', ['id' => $id]));
         return $this->runRow($row, true);
     }
 
@@ -165,7 +166,7 @@ final class ScheduleService
                 $resultSummary['id_batch']  = $batch['id_batch'] ?? null;
                 $resultSummary['products']  = $batch['total'] ?? null;
             } else {
-                throw new InvalidArgumentException("Unknown job_type '{$jobType}'");
+                throw new InvalidArgumentException(Lang::t('Unknown job type "{type}"', ['type' => $jobType]));
             }
         } catch (\Throwable $e) {
             $resultSummary['status'] = 'failed';
@@ -195,7 +196,7 @@ final class ScheduleService
     private function runBulkJob(array $payload, int $idShop): array
     {
         $actions = is_array($payload['actions'] ?? null) ? $payload['actions'] : [];
-        if (!$actions) throw new InvalidArgumentException('Bulk job has no actions');
+        if (!$actions) throw new InvalidArgumentException(Lang::t('Bulk job has no actions'));
 
         $idLang = isset($payload['id_lang']) ? (int) $payload['id_lang'] : null;
 
@@ -206,7 +207,7 @@ final class ScheduleService
             $productIds = $this->segments->listProductIds($payload['filter_spec']);
         }
 
-        if (!$productIds) throw new InvalidArgumentException('Bulk job resolved to 0 products');
+        if (!$productIds) throw new InvalidArgumentException(Lang::t('Bulk job resolved to 0 products'));
 
         $mode = (string) ($payload['mode'] ?? 'apply');
         if (!in_array($mode, ['apply', 'dry_run'], true)) $mode = 'apply';
@@ -248,7 +249,7 @@ final class ScheduleService
         $idVersion = isset($payload['id_version']) ? (int) $payload['id_version'] : null;
         $idLang    = (int) ($payload['id_lang']    ?? Context::getContext()->language->id);
 
-        if ($idPrompt <= 0) throw new InvalidArgumentException('AI job missing id_prompt');
+        if ($idPrompt <= 0) throw new InvalidArgumentException(Lang::t('AI job has no prompt'));
 
         $productIds = [];
         if (isset($payload['product_ids']) && is_array($payload['product_ids'])) {
@@ -256,7 +257,7 @@ final class ScheduleService
         } elseif (isset($payload['filter_spec']) && is_array($payload['filter_spec'])) {
             $productIds = $this->segments->listProductIds($payload['filter_spec']);
         }
-        if (!$productIds) throw new InvalidArgumentException('AI job resolved to 0 products');
+        if (!$productIds) throw new InvalidArgumentException(Lang::t('AI job resolved to 0 products'));
 
         $targetField = isset($payload['target_field']) && $payload['target_field'] !== '' ? (string) $payload['target_field'] : null;
         $targetLang  = isset($payload['target_lang'])  && $payload['target_lang']  !== '' ? (int)    $payload['target_lang']  : null;
@@ -314,13 +315,13 @@ final class ScheduleService
     /** @param array<string,mixed> $data */
     private function validate(array $data): void
     {
-        if (empty($data['name']))            throw new InvalidArgumentException('Name is required');
-        if (empty($data['cron_expression'])) throw new InvalidArgumentException('Cron expression is required');
+        if (empty($data['name']))            throw new InvalidArgumentException(Lang::t('Name is required'));
+        if (empty($data['cron_expression'])) throw new InvalidArgumentException(Lang::t('Cron expression is required'));
         if (empty($data['job_type']) || !in_array($data['job_type'], ['bulk_edit', 'ai_batch'], true)) {
-            throw new InvalidArgumentException("job_type must be 'bulk_edit' or 'ai_batch'");
+            throw new InvalidArgumentException(Lang::t('Job type must be "bulk_edit" or "ai_batch"'));
         }
         if (!isset($data['job_payload']) || !is_array($data['job_payload'])) {
-            throw new InvalidArgumentException('job_payload is required');
+            throw new InvalidArgumentException(Lang::t('Job payload is required'));
         }
         // Smoke-test the cron expression — throws if unparseable.
         $this->computeNextRun((string) $data['cron_expression'], new DateTimeImmutable('now'));
@@ -336,7 +337,7 @@ final class ScheduleService
     {
         $fields = preg_split('/\s+/', trim($expr)) ?: [];
         if (count($fields) !== 5) {
-            throw new InvalidArgumentException("Cron expression must have 5 fields, got '{$expr}'");
+            throw new InvalidArgumentException(Lang::t('Cron expression must have 5 fields, got "{expr}"', ['expr' => $expr]));
         }
         [$minF, $hourF, $domF, $monF, $dowF] = $fields;
         $tz = $from->getTimezone();
@@ -383,7 +384,7 @@ final class ScheduleService
             }
             $cursor = $cursor->modify('+1 minute');
         }
-        throw new InvalidArgumentException("Could not find next run for cron '{$expr}' within 1 year");
+        throw new InvalidArgumentException(Lang::t('Could not find the next run for cron "{expr}" within 1 year', ['expr' => $expr]));
     }
 
     /**
@@ -403,13 +404,13 @@ final class ScheduleService
             }
             if (str_starts_with($p, '*/')) {
                 $step = (int) substr($p, 2);
-                if ($step <= 0) throw new InvalidArgumentException("Invalid step '{$p}'");
+                if ($step <= 0) throw new InvalidArgumentException(Lang::t('Invalid step "{step}"', ['step' => $p]));
                 for ($i = $min; $i <= $max; $i += $step) $out[$i] = true;
                 continue;
             }
-            if (!ctype_digit($p)) throw new InvalidArgumentException("Cron field token '{$p}' is not numeric");
+            if (!ctype_digit($p)) throw new InvalidArgumentException(Lang::t('Cron field token "{token}" is not numeric', ['token' => $p]));
             $v = (int) $p;
-            if ($v < $min || $v > $max) throw new InvalidArgumentException("Cron value {$v} out of range [{$min},{$max}]");
+            if ($v < $min || $v > $max) throw new InvalidArgumentException(Lang::t('Cron value {value} out of range [{min},{max}]', ['value' => $v, 'min' => $min, 'max' => $max]));
             $out[$v] = true;
         }
         return $out;

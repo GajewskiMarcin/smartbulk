@@ -22,6 +22,7 @@ use RuntimeException;
 use SmartBulk\Repository\AiRunRepository;
 use SmartBulk\Repository\MasseditRepository;
 use SmartBulk\Repository\PromptRepository;
+use SmartBulk\Service\Lang;
 use SmartBulk\Service\SettingsService;
 
 final class AIService
@@ -65,16 +66,16 @@ final class AIService
     ): array {
         $prompt = $this->promptRepo->findPrompt($idPrompt);
         if ($prompt === null) {
-            throw new InvalidArgumentException("Prompt {$idPrompt} not found");
+            throw new InvalidArgumentException(Lang::t('Prompt {id} not found', ['id' => $idPrompt]));
         }
 
         $versionId = $idVersion ?? ($prompt['current_version'] !== null ? (int) $prompt['current_version'] : 0);
         if ($versionId === 0) {
-            throw new InvalidArgumentException('Prompt has no active version');
+            throw new InvalidArgumentException(Lang::t('Prompt has no active version'));
         }
         $version = $this->promptRepo->findVersion($versionId);
         if ($version === null || (int) $version['id_prompt'] !== $idPrompt) {
-            throw new InvalidArgumentException('Version does not belong to this prompt');
+            throw new InvalidArgumentException(Lang::t('Version does not belong to this prompt'));
         }
 
         $ctx = Context::getContext();
@@ -149,6 +150,30 @@ final class AIService
             throw $e;
         }
 
+        // Empty, truncated or refused output is recorded as a failed run (with
+        // its real token cost) instead of a pending one, so it can't be
+        // accepted into the product. The row also marks the product as
+        // processed for batches.
+        $unusable = $response->unusableReason(fn (string $msg): string => Lang::t($msg));
+        if ($unusable !== null) {
+            $this->runRepo->insert([
+                'id_prompt_version' => $versionId,
+                'id_massedit'       => $idBatch,
+                'id_product'        => $idProduct,
+                'id_lang'           => $lang,
+                'id_shop'           => $shop,
+                'input_context'     => $productCtx,
+                'output'            => $response->content,
+                'tokens_in'         => $response->tokensIn,
+                'tokens_out'        => $response->tokensOut,
+                'cost_usd'          => $response->costUsd,
+                'latency_ms'        => $response->latencyMs,
+                'status'            => 'failed',
+                'error'             => $unusable,
+            ]);
+            throw new RuntimeException($unusable);
+        }
+
         $idRun = $this->runRepo->insert([
             'id_prompt_version' => $versionId,
             'id_massedit'       => $idBatch,
@@ -200,19 +225,23 @@ final class AIService
     {
         $run = $this->runRepo->find($idRun);
         if ($run === null) {
-            throw new InvalidArgumentException("Run {$idRun} not found");
+            throw new InvalidArgumentException(Lang::t('Run {id} not found', ['id' => $idRun]));
         }
         if ($run['status'] !== 'pending') {
-            throw new InvalidArgumentException("Run {$idRun} is not pending (status: {$run['status']})");
+            throw new InvalidArgumentException(Lang::t('Run {id} is not pending (status: {status})', ['id' => $idRun, 'status' => $run['status']]));
+        }
+        // Runs queued before empty output was rejected at generate time.
+        if (trim((string) $run['output']) === '') {
+            throw new InvalidArgumentException(Lang::t('Run {id} has empty output — nothing to apply. Reject it and re-run.', ['id' => $idRun]));
         }
 
         $version = $this->promptRepo->findVersion((int) $run['id_prompt_version']);
         if ($version === null) {
-            throw new RuntimeException('Prompt version missing');
+            throw new RuntimeException(Lang::t('Prompt version missing'));
         }
         $prompt = $this->promptRepo->findPrompt((int) $version['id_prompt']);
         if ($prompt === null) {
-            throw new RuntimeException('Prompt missing');
+            throw new RuntimeException(Lang::t('Prompt missing'));
         }
 
         $context = is_string($run['input_context'] ?? null)
@@ -344,10 +373,10 @@ final class AIService
     {
         $run = $this->runRepo->find($idRun);
         if ($run === null) {
-            throw new InvalidArgumentException("Run {$idRun} not found");
+            throw new InvalidArgumentException(Lang::t('Run {id} not found', ['id' => $idRun]));
         }
         if ($run['status'] !== 'pending') {
-            throw new InvalidArgumentException("Run {$idRun} is not pending");
+            throw new InvalidArgumentException(Lang::t('Run {id} is not pending', ['id' => $idRun]));
         }
         $this->runRepo->updateStatus($idRun, 'rejected');
         return ['id_run' => $idRun, 'status' => 'rejected'];
@@ -376,9 +405,9 @@ final class AIService
         }
         $spent = $this->runRepo->getDailySpendUsd($idShop, date('Y-m-d'));
         if ($spent >= $daily) {
-            throw new RuntimeException(sprintf(
-                'Daily AI budget reached ($%.2f / $%.2f). Increase it in Settings or wait until tomorrow.',
-                $spent, $daily
+            throw new RuntimeException(Lang::t(
+                'Daily AI budget reached (${spent} / ${limit}). Increase it in Settings or wait until tomorrow.',
+                ['spent' => sprintf('%.2f', $spent), 'limit' => sprintf('%.2f', $daily)]
             ));
         }
     }
@@ -398,9 +427,9 @@ final class AIService
                AND created_at >= DATE_SUB(NOW(), INTERVAL 60 SECOND)'
         );
         if ($count >= $limit) {
-            throw new RuntimeException(sprintf(
-                'Rate limit reached (%d runs in last 60 s, limit %d). Wait a minute or raise the limit in Settings.',
-                $count, $limit
+            throw new RuntimeException(Lang::t(
+                'Rate limit reached ({count} runs in last 60 s, limit {limit}). Wait a minute or raise the limit in Settings.',
+                ['count' => $count, 'limit' => $limit]
             ));
         }
     }
@@ -428,7 +457,7 @@ final class AIService
         // -------- Field-write tasks (share the same mechanics) ----------------
         $product = new Product($idProduct, false, $idLang);
         if (!$product->id) {
-            throw new RuntimeException("Product {$idProduct} not found");
+            throw new RuntimeException(Lang::t('Product {id} not found', ['id' => $idProduct]));
         }
 
         // Explicit override wins over the task_type default.
@@ -445,19 +474,19 @@ final class AIService
                 'long_desc'        => 'description',
                 'translate'        => 'description',   // sensible default; override via prompt params
                 'seo_rewrite'      => 'meta_title',    // sensible default; override via prompt params
-                default            => throw new RuntimeException("Auto-apply not supported for task_type '{$taskType}'. Copy the output manually."),
+                default            => throw new RuntimeException(Lang::t('Auto-apply not supported for task type "{task}". Copy the output manually.', ['task' => $taskType])),
             };
         }
 
         if (!in_array($targetField, ['name', 'meta_title', 'meta_description', 'description_short', 'description', 'link_rewrite'], true)) {
-            throw new RuntimeException("Unsupported target_field '{$targetField}' for task_type '{$taskType}'.");
+            throw new RuntimeException(Lang::t('Unsupported target field "{field}" for task type "{task}".', ['field' => $targetField, 'task' => $taskType]));
         }
 
         // Re-load product in the target language so we pick up that lang's current value for the "old" snapshot.
         if ($targetLang !== $idLang) {
             $product = new Product($idProduct, false, $targetLang);
             if (!$product->id) {
-                throw new RuntimeException("Product {$idProduct} not found in target lang {$targetLang}");
+                throw new RuntimeException(Lang::t('Product {id} not found in target language {lang}', ['id' => $idProduct, 'lang' => $targetLang]));
             }
         }
 
@@ -484,7 +513,7 @@ final class AIService
             "SELECT id_image FROM `{$prefix}image` WHERE id_product = " . (int) $idProduct
         ) ?: [];
         if (!$rows) {
-            throw new RuntimeException("Product {$idProduct} has no images — nothing to apply alt text to.");
+            throw new RuntimeException(Lang::t('Product {id} has no images — nothing to apply alt text to.', ['id' => $idProduct]));
         }
 
         $updated = 0;
@@ -518,7 +547,7 @@ final class AIService
     {
         $tags = $this->parseTagOutput($output);
         if (!$tags) {
-            throw new RuntimeException('AI output did not contain any usable tags.');
+            throw new RuntimeException(Lang::t('AI output did not contain any usable tags.'));
         }
 
         // Replace semantics — wipe existing tags for this product+lang first.

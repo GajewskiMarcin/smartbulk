@@ -14,6 +14,14 @@ import {
   TASK_TYPE_LABELS,
   MODELS_BY_PROVIDER,
   PLACEHOLDERS,
+  EFFORT_LEVELS,
+  THINKING_MIN_MAX_TOKENS,
+  modelCaps,
+  canDisableThinking,
+  thinkingActive,
+  type ClaudeModelCaps,
+  type EffortLevel,
+  type ThinkingSetting,
   type Prompt,
   type PromptDetail,
   type PromptVersion,
@@ -92,7 +100,7 @@ export default function Prompts() {
             >
               <option value="">{t('prompts.all_task_types', 'All task types')}</option>
               {(Object.entries(TASK_TYPE_LABELS) as [TaskType, string][]).map(([k, v]) => (
-                <option key={k} value={k}>{v}</option>
+                <option key={k} value={k}>{t('task.' + k, v)}</option>
               ))}
             </Select>
           </div>
@@ -197,7 +205,7 @@ function PromptListItem({
         {prompt.name}
       </div>
       <div className="text-[11px] text-muted-foreground mt-0.5 truncate">
-        {TASK_TYPE_LABELS[prompt.task_type]}
+        {t('task.' + prompt.task_type, TASK_TYPE_LABELS[prompt.task_type])}
         {prompt.current_version_number && ` · v${prompt.current_version_number}`}
         {prompt.current_provider && ` · ${prompt.current_provider}`}
       </div>
@@ -253,7 +261,7 @@ function NewPromptForm({
         <Field label={t('prompts.field_task_type', 'Task type')} required>
           <Select value={taskType} onChange={(e) => setTaskType(e.target.value as TaskType)}>
             {(Object.entries(TASK_TYPE_LABELS) as [TaskType, string][]).map(([k, v]) => (
-              <option key={k} value={k}>{v}</option>
+              <option key={k} value={k}>{t('task.' + k, v)}</option>
             ))}
           </Select>
         </Field>
@@ -273,7 +281,7 @@ function NewPromptForm({
         <Field label={t('prompts.field_model', 'Model')}>
           <Select value={model} onChange={(e) => setModel(e.target.value)}>
             {MODELS_BY_PROVIDER[provider].map((m) => (
-              <option key={m.id} value={m.id}>{m.label}</option>
+              <option key={m.id} value={m.id}>{t('model.' + m.id, m.label)}</option>
             ))}
           </Select>
         </Field>
@@ -339,6 +347,8 @@ function PromptDetailEditor({
   const [maxTokens, setMaxTokens] = useState<string>(
     String((currentVersion?.params as { max_tokens?: number } | null)?.max_tokens ?? 256)
   );
+  const [effort, setEffort] = useState<EffortLevel | ''>(storedEffort(currentVersion?.params));
+  const [thinking, setThinking] = useState<ThinkingSetting>(storedThinking(currentVersion?.params));
   const [notes, setNotes] = useState('');
 
   // Re-init when prompt or current version changes
@@ -354,6 +364,8 @@ function PromptDetailEditor({
     setMaxTokens(
       String((currentVersion?.params as { max_tokens?: number } | null)?.max_tokens ?? 256)
     );
+    setEffort(storedEffort(currentVersion?.params));
+    setThinking(storedThinking(currentVersion?.params));
     setNotes('');
   }, [prompt.id_prompt, prompt.name, currentVersion?.id_prompt_version]);
 
@@ -363,6 +375,13 @@ function PromptDetailEditor({
     onError: (e: Error) => toast.show(e.message || t('prompts.toast_rename_failed', 'Rename failed'), 'error'),
   });
 
+  // What the selected model accepts; values it doesn't are not saved.
+  const caps = modelCaps(provider, model);
+  const effectiveEffort: EffortLevel | '' = effort && caps.effort.includes(effort) ? effort : '';
+  const effectiveThinking = applicableThinking(caps, thinking, effectiveEffort);
+  const thinkingOn = provider === 'claude' && thinkingActive(caps, effectiveThinking, effectiveEffort);
+  const maxTokensLow = thinkingOn && (Number(maxTokens) || 0) < THINKING_MIN_MAX_TOKENS;
+
   const versionMutation = useMutation({
     mutationFn: () =>
       promptsApi.createVersion(prompt.id_prompt, {
@@ -370,10 +389,12 @@ function PromptDetailEditor({
         user_prompt: userPrompt,
         provider,
         model,
-        params: {
+        params: buildParams(currentVersion?.params, {
           temperature: Number(temperature) || 0,
           max_tokens: Number(maxTokens) || 256,
-        },
+          effort: effectiveEffort,
+          thinking: effectiveThinking,
+        }),
         notes,
       }),
     onSuccess: () => { toast.show(t('prompts.toast_version_saved', 'New version saved & set as current'), 'success'); onChanged(); },
@@ -393,7 +414,9 @@ function PromptDetailEditor({
     || provider !== (currentVersion?.provider ?? 'claude')
     || model !== (currentVersion?.model ?? '')
     || Number(temperature) !== ((currentVersion?.params as { temperature?: number } | null)?.temperature ?? 0.4)
-    || Number(maxTokens) !== ((currentVersion?.params as { max_tokens?: number } | null)?.max_tokens ?? 256);
+    || Number(maxTokens) !== ((currentVersion?.params as { max_tokens?: number } | null)?.max_tokens ?? 256)
+    || effectiveEffort !== storedEffort(currentVersion?.params)
+    || effectiveThinking !== storedThinking(currentVersion?.params);
 
   return (
     <div className="flex flex-col gap-4 min-w-0">
@@ -404,7 +427,7 @@ function PromptDetailEditor({
             <>
               <span className="font-mono text-[11px]">{prompt.slug}</span>
               {' · '}
-              {TASK_TYPE_LABELS[prompt.task_type]}
+              {t('task.' + prompt.task_type, TASK_TYPE_LABELS[prompt.task_type])}
               {currentVersion && ` · ${t2('prompts.current_v', 'current: v{v}', { v: currentVersion.version_number })}`}
             </>
           }
@@ -427,7 +450,7 @@ function PromptDetailEditor({
           </Button>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           <Field label={t('prompts.field_provider', 'Provider')}>
             <Select
               value={provider}
@@ -446,24 +469,61 @@ function PromptDetailEditor({
           <Field label={t('prompts.field_model', 'Model')}>
             <Select value={model} onChange={(e) => setModel(e.target.value)}>
               {MODELS_BY_PROVIDER[provider].map((m) => (
-                <option key={m.id} value={m.id}>{m.label}</option>
+                <option key={m.id} value={m.id}>{t('model.' + m.id, m.label)}</option>
               ))}
             </Select>
           </Field>
-          <Field label={t('prompts.field_temperature', 'Temperature')} hint={t('prompts.temp_hint', '0 = deterministic, 1 = creative')}>
+          <Field
+            label={t('prompts.field_temperature', 'Temperature')}
+            hint={caps.temperature
+              ? t('prompts.temp_hint', '0 = deterministic, 1 = creative')
+              : t('prompts.temp_unsupported', 'This model does not accept temperature — the value is not sent.')}
+          >
             <Input
               type="number" min="0" max="2" step="0.1"
               value={temperature}
+              disabled={!caps.temperature}
               onChange={(e) => setTemperature(e.target.value)}
             />
           </Field>
-          <Field label={t('prompts.field_max_tokens', 'Max tokens')} hint={t('prompts.max_tokens_hint', 'Output length cap')}>
+          <Field
+            label={t('prompts.field_max_tokens', 'Max tokens')}
+            hint={thinkingOn
+              ? t('prompts.max_tokens_thinking_hint', 'Output length cap — thinking tokens count toward it, leave headroom.')
+              : t('prompts.max_tokens_hint', 'Output length cap')}
+          >
             <Input
               type="number" min="1"
               value={maxTokens}
               onChange={(e) => setMaxTokens(e.target.value)}
             />
+            {maxTokensLow && (
+              <div className="text-[11px] text-amber-700 font-medium">
+                {t2('prompts.max_tokens_thinking_warn', 'Low limit with thinking on: the reply may be cut off with no text (stop_reason: max_tokens). Consider at least {n}.', { n: THINKING_MIN_MAX_TOKENS })}
+              </div>
+            )}
           </Field>
+          {caps.effort.length > 0 && (
+            <Field label={t('prompts.field_effort', 'Effort')} hint={t('prompts.effort_hint', 'How much the model thinks and writes. Lower = cheaper and faster.')}>
+              <Select value={effectiveEffort} onChange={(e) => setEffort(e.target.value as EffortLevel | '')}>
+                <option value="">
+                  {t2('prompts.effort_default', 'Default — not sent ({level})', { level: caps.defaultEffort ?? '' })}
+                </option>
+                {EFFORT_LEVELS.filter((l) => caps.effort.includes(l)).map((l) => {
+                  // xhigh/max can't be combined with thinking switched off.
+                  const blocked = effectiveThinking === 'disabled' && !canDisableThinking(caps, l);
+                  return (
+                    <option key={l} value={l} disabled={blocked}>
+                      {l}{blocked ? t('prompts.effort_needs_thinking', ' — requires thinking on') : ''}
+                    </option>
+                  );
+                })}
+              </Select>
+            </Field>
+          )}
+          {caps.thinking !== 'none' && (
+            <ThinkingField caps={caps} value={effectiveThinking} effort={effectiveEffort} onChange={setThinking} />
+          )}
         </div>
 
         <div className="grid grid-cols-1 gap-4 mt-4">
@@ -517,6 +577,99 @@ function PromptDetailEditor({
         </div>
       </Card>
     </div>
+  );
+}
+
+// ---------------- Effort / thinking helpers ----------------
+
+function storedEffort(params: Record<string, unknown> | null | undefined): EffortLevel | '' {
+  const v = params?.effort;
+  return typeof v === 'string' && (EFFORT_LEVELS as readonly string[]).includes(v) ? (v as EffortLevel) : '';
+}
+
+function storedThinking(params: Record<string, unknown> | null | undefined): ThinkingSetting {
+  const v = params?.thinking;
+  if (v === 'adaptive') return 'adaptive';
+  if (v === 'disabled' || v === 'between_tools') return 'disabled';
+  return '';
+}
+
+/** The thinking setting worth saving for this model ('' = leave to the API default). */
+function applicableThinking(caps: ClaudeModelCaps, setting: ThinkingSetting, effort: EffortLevel | ''): ThinkingSetting {
+  if (caps.thinking === 'default_off') return setting === 'adaptive' ? 'adaptive' : '';
+  if (caps.thinking === 'default_on') {
+    return setting === 'disabled' && canDisableThinking(caps, effort) ? 'disabled' : '';
+  }
+  return '';
+}
+
+/**
+ * New version params: keeps keys the editor doesn't manage (target_field,
+ * target_lang, top_p, …) and replaces effort/thinking (omitted when empty).
+ */
+function buildParams(
+  previous: Record<string, unknown> | null | undefined,
+  edited: { temperature: number; max_tokens: number; effort: EffortLevel | ''; thinking: ThinkingSetting },
+): Record<string, unknown> {
+  const { effort: _effort, thinking: _thinking, ...rest } = previous ?? {};
+  return {
+    ...rest,
+    temperature: edited.temperature,
+    max_tokens: edited.max_tokens,
+    ...(edited.effort ? { effort: edited.effort } : {}),
+    ...(edited.thinking ? { thinking: edited.thinking } : {}),
+  };
+}
+
+function ThinkingField({
+  caps,
+  value,
+  effort,
+  onChange,
+}: {
+  caps: ClaudeModelCaps;
+  value: ThinkingSetting;
+  effort: EffortLevel | '';
+  onChange: (v: ThinkingSetting) => void;
+}) {
+  const label = t('prompts.field_thinking', 'Thinking');
+
+  if (caps.thinking === 'always_on') {
+    return (
+      <Field label={label} hint={t('prompts.thinking_always_on', 'Always on for this model — control depth with effort.')}>
+        <Select value="" disabled>
+          <option value="">{t('prompts.thinking_default_on', 'Default — not sent (on by default)')}</option>
+        </Select>
+      </Field>
+    );
+  }
+
+  if (caps.thinking === 'default_off') {
+    return (
+      <Field label={label}>
+        <Select value={value} onChange={(e) => onChange(e.target.value as ThinkingSetting)}>
+          <option value="">{t('prompts.thinking_default_off', 'Default — not sent (off by default)')}</option>
+          <option value="adaptive">{t('prompts.thinking_on', 'On (adaptive)')}</option>
+        </Select>
+      </Field>
+    );
+  }
+
+  // default_on: switching off is only accepted at effort high or below.
+  const offAllowed = canDisableThinking(caps, effort);
+  const offLabel = caps.thinkingOff === 'between_tools'
+    ? t('prompts.thinking_off_between_tools', 'Off (between_tools)')
+    : t('prompts.thinking_off', 'Off');
+  return (
+    <Field
+      label={label}
+      hint={offAllowed ? undefined : t('prompts.thinking_off_blocked', 'Thinking can only be switched off at effort high or lower.')}
+    >
+      <Select value={value} onChange={(e) => onChange(e.target.value as ThinkingSetting)}>
+        <option value="">{t('prompts.thinking_default_on', 'Default — not sent (on by default)')}</option>
+        <option value="disabled" disabled={!offAllowed}>{offLabel}</option>
+      </Select>
+    </Field>
   );
 }
 

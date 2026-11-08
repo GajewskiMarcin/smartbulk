@@ -17,6 +17,7 @@ use SmartBulk\Service\Ai\AIBatchService;
 use SmartBulk\Service\Ai\AIService;
 use SmartBulk\Service\Ai\ClaudeProvider;
 use SmartBulk\Service\Ai\OpenAIProvider;
+use SmartBulk\Service\Lang;
 use SmartBulk\Service\Segment\SegmentService;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -35,7 +36,7 @@ final class AiController extends CompatAdminController
         $targetLang  = isset($payload['target_lang']) && $payload['target_lang'] !== '' ? (int) $payload['target_lang'] : null;
 
         if ($idPrompt <= 0 || $idProduct <= 0) {
-            return new JsonResponse(['ok' => false, 'error' => 'id_prompt and id_product are required'], 422);
+            return new JsonResponse(['ok' => false, 'error' => Lang::t('id_prompt and id_product are required')], 422);
         }
 
         try {
@@ -70,7 +71,7 @@ final class AiController extends CompatAdminController
         $sample      = isset($payload['sample_product_id']) ? (int) $payload['sample_product_id'] : null;
 
         if ($idPrompt <= 0) {
-            return new JsonResponse(['ok' => false, 'error' => 'id_prompt is required'], 422);
+            return new JsonResponse(['ok' => false, 'error' => Lang::t('id_prompt is required')], 422);
         }
         try {
             return new JsonResponse(['ok' => true, 'estimate' => $estimator->estimate($idPrompt, $productCount, $sample, $idVersion)]);
@@ -106,7 +107,7 @@ final class AiController extends CompatAdminController
             $resp = match ($provider) {
                 'claude' => $claude->generate('Respond with the single word: OK', 'ping', ['model' => 'claude-haiku-4-5', 'max_tokens' => 8]),
                 'openai' => $openai->generate('Respond with the single word: OK', 'ping', ['model' => 'gpt-4o-mini', 'max_tokens' => 8]),
-                default  => throw new InvalidArgumentException("Unknown provider '{$provider}'"),
+                default  => throw new InvalidArgumentException(Lang::t('Unknown provider "{provider}"', ['provider' => $provider])),
             };
             return new JsonResponse([
                 'ok'         => true,
@@ -139,7 +140,7 @@ final class AiController extends CompatAdminController
         $targetLang  = isset($payload['target_lang'])  && $payload['target_lang']  !== '' ? (int)    $payload['target_lang']  : null;
 
         if ($idPrompt <= 0) {
-            return new JsonResponse(['ok' => false, 'error' => 'id_prompt is required'], 422);
+            return new JsonResponse(['ok' => false, 'error' => Lang::t('id_prompt is required')], 422);
         }
 
         $productIds = [];

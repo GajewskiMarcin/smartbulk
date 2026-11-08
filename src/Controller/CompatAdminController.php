@@ -25,6 +25,8 @@ declare(strict_types=1);
 
 namespace SmartBulk\Controller;
 
+use SmartBulk\Service\Lang;
+
 /**
  * Cross-version permission enforcement shared by every SmartBulk controller.
  *
@@ -58,7 +60,7 @@ trait SmartBulkAccessTrait
 
         // No authenticated employee → deny (the BO firewall normally catches this first).
         if (!$employee || !(int) $employee->id) {
-            throw new \Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException('SmartBulk: authentication required.');
+            throw new \Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException(Lang::t('SmartBulk: authentication required.'));
         }
 
         // Super Admin bypasses per-tab permissions.
@@ -78,7 +80,7 @@ trait SmartBulkAccessTrait
         $access = \Profile::getProfileAccess((int) $employee->id_profile, $idTab);
         if (!\is_array($access) || (int) ($access[$perm] ?? 0) !== 1) {
             throw new \Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException(
-                \sprintf('SmartBulk: missing "%s" permission on AdminSmartBulk.', $perm)
+                Lang::t('SmartBulk: missing "{permission}" permission on AdminSmartBulk.', ['permission' => $perm])
             );
         }
     }

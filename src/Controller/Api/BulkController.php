@@ -17,6 +17,7 @@ use SmartBulk\Repository\ActionTemplateRepository;
 use SmartBulk\Service\Bulk\ActionTemplates;
 use SmartBulk\Service\Bulk\BulkEditorService;
 use SmartBulk\Service\Bulk\FieldDefinitions;
+use SmartBulk\Service\Lang;
 use SmartBulk\Service\Segment\SegmentService;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -49,7 +50,7 @@ final class BulkController extends CompatAdminController
         $name = trim((string) ($payload['name'] ?? ''));
         $actions = is_array($payload['actions'] ?? null) ? $payload['actions'] : [];
         if ($name === '' || !$actions) {
-            return new JsonResponse(['ok' => false, 'error' => 'name and actions are required'], 422);
+            return new JsonResponse(['ok' => false, 'error' => Lang::t('Name and actions are required')], 422);
         }
         $ctx = \Context::getContext();
         $id = $repo->create([
@@ -88,10 +89,10 @@ final class BulkController extends CompatAdminController
         }
 
         if (!$productIds) {
-            return new JsonResponse(['ok' => false, 'error' => 'No products matched'], 422);
+            return new JsonResponse(['ok' => false, 'error' => Lang::t('No products matched')], 422);
         }
         if (!$actions) {
-            return new JsonResponse(['ok' => false, 'error' => 'No actions supplied'], 422);
+            return new JsonResponse(['ok' => false, 'error' => Lang::t('No actions supplied')], 422);
         }
 
         try {

@@ -49,7 +49,7 @@ class SmartBulk extends Module
     public const MODULE_NAME = 'smartbulk';
 
     /** @var string Single source of truth for the module version (mirrored in config.xml). */
-    public const VERSION = '1.0.6';
+    public const VERSION = '2.0.1';
 
     /** @var string[] Hooks to register on install */
     private const HOOKS = [
@@ -70,7 +70,7 @@ class SmartBulk extends Module
         $this->name = self::MODULE_NAME;
         $this->tab = 'administration';
         $this->version = self::VERSION;
-        $this->author = 'marcingajewski.pl';
+        $this->author = 'marcingajewski.pl (fork: Artur67pl)';
         $this->need_instance = 0;
         $this->bootstrap = true;
 
@@ -701,6 +701,21 @@ class SmartBulk extends Module
             'prompts.temp_hint' => $this->l('0 = deterministic, 1 = creative', 'smartbulk'),
             'prompts.field_max_tokens' => $this->l('Max tokens', 'smartbulk'),
             'prompts.max_tokens_hint' => $this->l('Output length cap', 'smartbulk'),
+            'prompts.temp_unsupported' => $this->l('This model does not accept temperature — the value is not sent.', 'smartbulk'),
+            'prompts.max_tokens_thinking_hint' => $this->l('Output length cap — thinking tokens count toward it, leave headroom.', 'smartbulk'),
+            'prompts.max_tokens_thinking_warn' => $this->l('Low limit with thinking on: the reply may be cut off with no text (stop_reason: max_tokens). Consider at least {n}.', 'smartbulk'),
+            'prompts.field_effort' => $this->l('Effort', 'smartbulk'),
+            'prompts.effort_hint' => $this->l('How much the model thinks and writes. Lower = cheaper and faster.', 'smartbulk'),
+            'prompts.effort_default' => $this->l('Default — not sent ({level})', 'smartbulk'),
+            'prompts.effort_needs_thinking' => $this->l(' — requires thinking on', 'smartbulk'),
+            'prompts.field_thinking' => $this->l('Thinking', 'smartbulk'),
+            'prompts.thinking_always_on' => $this->l('Always on for this model — control depth with effort.', 'smartbulk'),
+            'prompts.thinking_default_on' => $this->l('Default — not sent (on by default)', 'smartbulk'),
+            'prompts.thinking_default_off' => $this->l('Default — not sent (off by default)', 'smartbulk'),
+            'prompts.thinking_on' => $this->l('On (adaptive)', 'smartbulk'),
+            'prompts.thinking_off' => $this->l('Off', 'smartbulk'),
+            'prompts.thinking_off_between_tools' => $this->l('Off (between_tools)', 'smartbulk'),
+            'prompts.thinking_off_blocked' => $this->l('Thinking can only be switched off at effort high or lower.', 'smartbulk'),
             'prompts.field_changelog' => $this->l('Changelog (for the new version)', 'smartbulk'),
             'prompts.changelog_hint' => $this->l('What changed and why?', 'smartbulk'),
             'prompts.changelog_placeholder' => $this->l('e.g. Tightened the character limit. Switched model to Haiku for cost.', 'smartbulk'),
@@ -910,6 +925,289 @@ class SmartBulk extends Module
             'lang_tabs.target_language' => $this->l('Target language:', 'smartbulk'),
             'lang_tabs.all_n' => $this->l('All ({n})', 'smartbulk'),
             'bulk.save_segment_disabled' => $this->l('Add at least one condition to save', 'smartbulk'),
+            'ai.blurb.meta_title' => $this->l('SEO title ≤ 60 chars', 'smartbulk'),
+            'ai.blurb.meta_description' => $this->l('SEO description ≤ 160 chars', 'smartbulk'),
+            'ai.blurb.short_desc' => $this->l('Punchy 1–3 sentences', 'smartbulk'),
+            'ai.blurb.long_desc' => $this->l('Full HTML description', 'smartbulk'),
+            'ai.blurb.translate' => $this->l('Cross-language (manual apply)', 'smartbulk'),
+            'ai.blurb.alt_text' => $this->l('Image alt text', 'smartbulk'),
+            'ai.blurb.seo_rewrite' => $this->l('Improve existing text', 'smartbulk'),
+            'ai.blurb.tagging' => $this->l('Suggest tags & categories', 'smartbulk'),
+            'ai.pick_prompt_first' => $this->l('Pick a prompt first', 'smartbulk'),
+            'ai.pick_product_first' => $this->l('Pick a product first', 'smartbulk'),
+            'ai.toast_generated' => $this->l('Generated — review below', 'smartbulk'),
+            'ai.toast_batch_started' => $this->l('Batch #{id} started with {n} products', 'smartbulk'),
+            'ai.toast_batch_start_failed' => $this->l('Could not start batch', 'smartbulk'),
+            'ai.toast_applied_to_product' => $this->l('Applied to product', 'smartbulk'),
+            'ai.toast_paused' => $this->l('Paused — AI limit reached. Try again later.', 'smartbulk'),
+            'ai.toast_processing_failed' => $this->l('Processing failed', 'smartbulk'),
+            'ai.toast_chunk_failed' => $this->l('Chunk failed entirely ({n}). Stopping.', 'smartbulk'),
+            'ai.toast_stopped_at' => $this->l('Stopped at {done}/{total}', 'smartbulk'),
+            'ai.toast_accepted_n_failed' => $this->l('Accepted {n} ({failed} failed)', 'smartbulk'),
+            'ai.toast_accepted_n' => $this->l('Accepted {n}', 'smartbulk'),
+            'ai.toast_rejected_n' => $this->l('Rejected {n}', 'smartbulk'),
+            'ai.toast_accept_all_failed' => $this->l('Accept all failed', 'smartbulk'),
+            'ai.toast_reject_all_failed' => $this->l('Reject all failed', 'smartbulk'),
+            'ai.batch_title' => $this->l('Batch #{id}', 'smartbulk'),
+            'ai.stat_pending' => $this->l('Pending approval', 'smartbulk'),
+            'ai.approval_queue' => $this->l('Approval queue', 'smartbulk'),
+            'ai.approval_queue_sub' => $this->l('Per-item review or bulk actions', 'smartbulk'),
+            'status.done' => $this->l('done', 'smartbulk'),
+            'ai.n_chars' => $this->l('{n} chars', 'smartbulk'),
+            'ai.note_label' => $this->l('Note:', 'smartbulk'),
+            'ai.bulk_accept_progress' => $this->l('Accepting in queue… {done}/{total}', 'smartbulk'),
+            'ai.bulk_reject_progress' => $this->l('Rejecting in queue… {done}/{total}', 'smartbulk'),
+            'ai.bulk_failed' => $this->l('({n} failed)', 'smartbulk'),
+            'ai.bulk_stop' => $this->l('■ Stop', 'smartbulk'),
+            'ai.bulk_progress_hint' => $this->l('Processing in chunks of 25 — safe to leave the page open, will continue automatically.', 'smartbulk'),
+            'err.accept_all_failed' => $this->l('Accept-all failed', 'smartbulk'),
+            'err.accept_failed' => $this->l('Accept failed', 'smartbulk'),
+            'err.resume_failed' => $this->l('Resume failed', 'smartbulk'),
+            'err.reject_failed' => $this->l('Reject failed', 'smartbulk'),
+            'err.estimate_failed' => $this->l('Estimate failed', 'smartbulk'),
+            'err.could_not_fetch_batch' => $this->l('Could not fetch batch', 'smartbulk'),
+            'err.no_run_returned' => $this->l('No run returned', 'smartbulk'),
+            'err.processing_failed' => $this->l('Processing failed', 'smartbulk'),
+            'err.reject_all_failed' => $this->l('Reject-all failed', 'smartbulk'),
+            'err.could_not_create_batch' => $this->l('Could not create batch', 'smartbulk'),
+            'err.cancel_failed' => $this->l('Cancel failed', 'smartbulk'),
+            'err.save_template_failed' => $this->l('Save template failed', 'smartbulk'),
+            'err.process_failed' => $this->l('Process failed', 'smartbulk'),
+            'err.preview_failed' => $this->l('Preview failed', 'smartbulk'),
+            'err.undo_failed' => $this->l('Undo failed', 'smartbulk'),
+            'err.failed_to_load_dashboard' => $this->l('Failed to load dashboard', 'smartbulk'),
+            'err.scan_failed' => $this->l('Scan failed', 'smartbulk'),
+            'err.lookup_failed' => $this->l('Lookup failed', 'smartbulk'),
+            'err.snapshots_failed' => $this->l('Snapshots failed', 'smartbulk'),
+            'err.detail_failed' => $this->l('Detail failed', 'smartbulk'),
+            'err.list_failed' => $this->l('List failed', 'smartbulk'),
+            'err.create_failed' => $this->l('Create failed', 'smartbulk'),
+            'err.run_failed' => $this->l('Run failed', 'smartbulk'),
+            'err.update_failed' => $this->l('Update failed', 'smartbulk'),
+            'err.http' => $this->l('Server error (HTTP {status})', 'smartbulk'),
+            'ai.target.name' => $this->l('Product name', 'smartbulk'),
+            'ai.target.meta_title' => $this->l('Meta title', 'smartbulk'),
+            'ai.target.meta_description' => $this->l('Meta description', 'smartbulk'),
+            'ai.target.description_short' => $this->l('Short description', 'smartbulk'),
+            'ai.target.description' => $this->l('Long description', 'smartbulk'),
+            'scheduler.dow.0' => $this->l('Sun', 'smartbulk'),
+            'scheduler.dow.1' => $this->l('Mon', 'smartbulk'),
+            'scheduler.dow.2' => $this->l('Tue', 'smartbulk'),
+            'scheduler.dow.3' => $this->l('Wed', 'smartbulk'),
+            'scheduler.dow.4' => $this->l('Thu', 'smartbulk'),
+            'scheduler.dow.5' => $this->l('Fri', 'smartbulk'),
+            'scheduler.dow.6' => $this->l('Sat', 'smartbulk'),
+            'cond.op.contains' => $this->l('contains', 'smartbulk'),
+            'cond.op.not_contains' => $this->l('does not contain', 'smartbulk'),
+            'cond.op.starts_with' => $this->l('starts with', 'smartbulk'),
+            'cond.op.ends_with' => $this->l('ends with', 'smartbulk'),
+            'cond.op.equals' => $this->l('equals', 'smartbulk'),
+            'cond.op.not_equals' => $this->l('does not equal', 'smartbulk'),
+            'cond.op.matches_regex' => $this->l('matches regex', 'smartbulk'),
+            'cond.op.is_empty' => $this->l('is empty', 'smartbulk'),
+            'cond.op.is_not_empty' => $this->l('is not empty', 'smartbulk'),
+            'cond.op.length_lt' => $this->l('length <', 'smartbulk'),
+            'cond.op.length_gt' => $this->l('length >', 'smartbulk'),
+            'cond.op.length_eq' => $this->l('length =', 'smartbulk'),
+            'cond.op.length_between' => $this->l('length between', 'smartbulk'),
+            'cond.op.between' => $this->l('between', 'smartbulk'),
+            'cond.op.not_between' => $this->l('not between', 'smartbulk'),
+            'cond.op.is_null' => $this->l('is empty', 'smartbulk'),
+            'cond.op.is_not_null' => $this->l('is not empty', 'smartbulk'),
+            'cond.op.is_true' => $this->l('is yes', 'smartbulk'),
+            'cond.op.is_false' => $this->l('is no', 'smartbulk'),
+            'cond.op.contains_any' => $this->l('is one of', 'smartbulk'),
+            'cond.op.contains_all' => $this->l('contains all of', 'smartbulk'),
+            'cond.op.contains_none' => $this->l('is none of', 'smartbulk'),
+            'cond.op.has_no_value' => $this->l('has no value', 'smartbulk'),
+            'cond.op.is_one_of' => $this->l('is one of', 'smartbulk'),
+            'cond.op.is_not_one_of' => $this->l('is not one of', 'smartbulk'),
+            'cond.op.before' => $this->l('before', 'smartbulk'),
+            'cond.op.after' => $this->l('after', 'smartbulk'),
+            'cond.op.on' => $this->l('on', 'smartbulk'),
+            'cond.op.last_n_days' => $this->l('in last N days', 'smartbulk'),
+            'cond.op.next_n_days' => $this->l('in next N days', 'smartbulk'),
+            'cond.lang_suffix' => $this->l('[lang {n}]', 'smartbulk'),
+            'gap.group.seo' => $this->l('SEO / meta', 'smartbulk'),
+            'gap.group.content' => $this->l('Descriptions', 'smartbulk'),
+            'gap.group.images' => $this->l('Images', 'smartbulk'),
+            'gap.group.codes' => $this->l('Product codes', 'smartbulk'),
+            'gap.group.behavior' => $this->l('Behavior', 'smartbulk'),
+            'gap.missing_meta_title' => $this->l('Missing meta title', 'smartbulk'),
+            'gap.missing_meta_description' => $this->l('Missing meta description', 'smartbulk'),
+            'gap.missing_focus_keyphrase' => $this->l('Missing focus keyphrase', 'smartbulk'),
+            'gap.missing_short_desc' => $this->l('Missing short description', 'smartbulk'),
+            'gap.missing_description' => $this->l('Missing long description', 'smartbulk'),
+            'gap.short_desc_lt_80' => $this->l('Short description < 80 chars', 'smartbulk'),
+            'gap.short_desc_lt_150' => $this->l('Short description < 150 chars', 'smartbulk'),
+            'gap.desc_lt_300' => $this->l('Long description < 300 chars', 'smartbulk'),
+            'gap.missing_main_image' => $this->l('Missing main image', 'smartbulk'),
+            'gap.missing_alt_text' => $this->l('Images without alt text', 'smartbulk'),
+            'gap.missing_reference' => $this->l('Missing reference (SKU)', 'smartbulk'),
+            'gap.missing_mpn' => $this->l('Missing MPN', 'smartbulk'),
+            'gap.missing_upc' => $this->l('Missing UPC barcode', 'smartbulk'),
+            'gap.missing_ean' => $this->l('Missing GTIN (EAN / JAN)', 'smartbulk'),
+            'gap.missing_isbn' => $this->l('Missing ISBN', 'smartbulk'),
+            'gap.never_sold' => $this->l('Never sold', 'smartbulk'),
+            'bulk.group.basic' => $this->l('Basic', 'smartbulk'),
+            'bulk.group.content' => $this->l('Descriptions', 'smartbulk'),
+            'bulk.group.seo' => $this->l('SEO', 'smartbulk'),
+            'bulk.group.pricing' => $this->l('Pricing', 'smartbulk'),
+            'bulk.group.stock' => $this->l('Stock', 'smartbulk'),
+            'bulk.group.codes' => $this->l('Product codes', 'smartbulk'),
+            'bulk.group.shipping' => $this->l('Shipping', 'smartbulk'),
+            'bulk.op.set' => $this->l('Set to', 'smartbulk'),
+            'bulk.op.append' => $this->l('Append', 'smartbulk'),
+            'bulk.op.prepend' => $this->l('Prepend', 'smartbulk'),
+            'bulk.op.replace' => $this->l('Replace', 'smartbulk'),
+            'bulk.op.math' => $this->l('Math', 'smartbulk'),
+            'bulk.op.clear' => $this->l('Clear', 'smartbulk'),
+            'bulk.op.copy_from' => $this->l('📋 Copy from field', 'smartbulk'),
+            'bulk.op.generate_from_name' => $this->l('✨ Generate from name', 'smartbulk'),
+            'bulk.op.generate_from_short_desc' => $this->l('✨ Generate from short description', 'smartbulk'),
+            'bulk.op.ai_generate' => $this->l('🤖 AI generate (prompt)', 'smartbulk'),
+            'bulk.op.skip' => $this->l('Skip', 'smartbulk'),
+            'model.claude-haiku-4-5' => $this->l('Claude Haiku 4.5 (fast, cheap)', 'smartbulk'),
+            'model.claude-haiku-5-5' => $this->l('Claude Haiku 5.5 (fastest, cheapest)', 'smartbulk'),
+            'model.claude-sonnet-4-6' => $this->l('Claude Sonnet 4.6 (legacy, temperature)', 'smartbulk'),
+            'model.claude-sonnet-5-5' => $this->l('Claude Sonnet 5.5 (balanced)', 'smartbulk'),
+            'model.claude-opus-4-7' => $this->l('Claude Opus 4.7 (legacy)', 'smartbulk'),
+            'model.claude-opus-5-5' => $this->l('Claude Opus 5.5 (best quality)', 'smartbulk'),
+            'model.gpt-4o-mini' => $this->l('GPT-4o-mini (fast, cheap)', 'smartbulk'),
+            'model.gpt-4o' => $this->l('GPT-4o (quality)', 'smartbulk'),
+            'ab.empty_before' => $this->l('No actions yet. Click', 'smartbulk'),
+            'ab.add_field' => $this->l('+ Add field', 'smartbulk'),
+            'ab.empty_after' => $this->l('below to start building your edit.', 'smartbulk'),
+            'ab.close_picker' => $this->l('Close picker', 'smartbulk'),
+            'ab.search_fields' => $this->l('Search fields…', 'smartbulk'),
+            'ab.multilang' => $this->l('multilang', 'smartbulk'),
+            'ab.all_fields_added' => $this->l('All fields already added.', 'smartbulk'),
+            'ab.no_fields_match' => $this->l('No fields match.', 'smartbulk'),
+            'ab.remove_action' => $this->l('Remove action', 'smartbulk'),
+            'ab.html_hint' => $this->l('⚠ HTML field — use <p>, <strong>, <ul>, <li> tags where needed.', 'smartbulk'),
+            'ab.format_mismatch' => $this->l('Value does not match the required format.', 'smartbulk'),
+            'ab.chars_truncated' => $this->l('{len} / {limit} chars — value will be truncated to {limit}.', 'smartbulk'),
+            'ab.chars_count' => $this->l('{len} / {limit} chars', 'smartbulk'),
+            'ab.chars_near_limit' => $this->l(' — approaching the limit.', 'smartbulk'),
+            'ab.same_value_skus' => $this->l('⚠ "Set to" applies the same value to every product — duplicate SKUs will be created. Use "Replace" or skip on a batch unless intentional.', 'smartbulk'),
+            'ab.same_value_codes' => $this->l('⚠ "Set to" applies the same value to every product — duplicate codes will be created. Use "Replace" or skip on a batch unless intentional.', 'smartbulk'),
+            'ab.list_load_failed' => $this->l('Failed to load list.', 'smartbulk'),
+            'ab.select' => $this->l('— select —', 'smartbulk'),
+            'ab.no_change' => $this->l('No change.', 'smartbulk'),
+            'ab.will_clear' => $this->l('Field will be cleared.', 'smartbulk'),
+            'ab.gen_meta_title' => $this->l('Each product\'s meta title will be set to its name, truncated to {n} characters. No value needed.', 'smartbulk'),
+            'ab.gen_link_rewrite' => $this->l('The URL will be auto-generated per product from its name in the selected language (same behavior as the "Generate from name" button in PrestaShop\'s product form). No value needed.', 'smartbulk'),
+            'ab.gen_from_name' => $this->l('The value will be auto-generated per product from its name. No value needed.', 'smartbulk'),
+            'ab.gen_from_short_desc' => $this->l('Each product\'s meta description will be generated from its short description (HTML stripped), truncated to {n} characters. Falls back to product name if short description is empty. No value needed.', 'smartbulk'),
+            'ab.ai_generate_hint' => $this->l('Each matching product will be processed by the picked prompt at apply time. Preview shows a placeholder — real text is generated during Step 4.', 'smartbulk'),
+            'ab.find' => $this->l('Find', 'smartbulk'),
+            'ab.replace_with' => $this->l('Replace with', 'smartbulk'),
+            'ab.math_add' => $this->l('+ add', 'smartbulk'),
+            'ab.math_subtract' => $this->l('− subtract', 'smartbulk'),
+            'ab.math_multiply' => $this->l('× multiply', 'smartbulk'),
+            'ab.math_divide' => $this->l('÷ divide', 'smartbulk'),
+            'ab.value' => $this->l('Value', 'smartbulk'),
+            'ab.yes' => $this->l('Yes', 'smartbulk'),
+            'ab.no' => $this->l('No', 'smartbulk'),
+            'ab.new_value' => $this->l('New value', 'smartbulk'),
+            'ab.text_append' => $this->l('Text to append', 'smartbulk'),
+            'ab.text_prepend' => $this->l('Text to prepend', 'smartbulk'),
+            'ab.all_languages_n' => $this->l('all languages ({n})', 'smartbulk'),
+            'ab.lang_n' => $this->l('lang {n}', 'smartbulk'),
+            'ab.uses' => $this->l('Uses', 'smartbulk'),
+            'ab.from_global_tabs' => $this->l('from global tabs.', 'smartbulk'),
+            'ab.override' => $this->l('Override for this action', 'smartbulk'),
+            'ab.override_label' => $this->l('Override:', 'smartbulk'),
+            'ab.use_global' => $this->l('Use global', 'smartbulk'),
+            'ab.pick_source' => $this->l('— pick source field —', 'smartbulk'),
+            'ab.copy_before' => $this->l('Each product\'s', 'smartbulk'),
+            'ab.copy_middle' => $this->l('will be set to its', 'smartbulk'),
+            'ab.copy_after' => $this->l('. Empty source values will leave the target unchanged (flagged in preview).', 'smartbulk'),
+            'ab.src.name' => $this->l('Product name', 'smartbulk'),
+            'ab.src.reference' => $this->l('Reference (SKU)', 'smartbulk'),
+            'ab.src.meta_title' => $this->l('Meta title', 'smartbulk'),
+            'ab.src.meta_description' => $this->l('Meta description', 'smartbulk'),
+            'ab.src.description_short' => $this->l('Short description', 'smartbulk'),
+            'ab.src.description' => $this->l('Long description', 'smartbulk'),
+            'ab.src.link_rewrite' => $this->l('Friendly URL', 'smartbulk'),
+            'ab.src.available_now' => $this->l('Label when in-stock', 'smartbulk'),
+            'ab.src.available_later' => $this->l('Label when out of stock', 'smartbulk'),
+            'ab.src.price' => $this->l('Price', 'smartbulk'),
+            'ab.src.wholesale_price' => $this->l('Cost price', 'smartbulk'),
+            'ab.src.ecotax' => $this->l('Ecotax', 'smartbulk'),
+            'ab.src.weight' => $this->l('Weight', 'smartbulk'),
+            'ab.src.width' => $this->l('Width', 'smartbulk'),
+            'ab.src.height' => $this->l('Height', 'smartbulk'),
+            'ab.src.depth' => $this->l('Depth', 'smartbulk'),
+            'ab.src.additional_shipping_cost' => $this->l('Additional shipping', 'smartbulk'),
+            'ab.src.unit_price_ratio' => $this->l('Unit price ratio', 'smartbulk'),
+            'ab.src.quantity' => $this->l('Stock quantity', 'smartbulk'),
+            'ab.src.minimal_quantity' => $this->l('Min. qty for sale', 'smartbulk'),
+            'ab.src.low_stock_threshold' => $this->l('Low stock threshold', 'smartbulk'),
+            'app.grid_handoff_label' => $this->l('Selected from PrestaShop product list ({n})', 'smartbulk'),
+            'form.stored_keep' => $this->l('Stored: {preview} — leave blank to keep', 'smartbulk'),
+            'form.hide' => $this->l('Hide', 'smartbulk'),
+            'form.show' => $this->l('Show', 'smartbulk'),
+            'multiselect.placeholder' => $this->l('Select…', 'smartbulk'),
+            'multiselect.no_options' => $this->l('No options', 'smartbulk'),
+            'multiselect.n_more' => $this->l('+{n} more', 'smartbulk'),
+            'multiselect.search' => $this->l('Search…', 'smartbulk'),
+            'multiselect.n_selected' => $this->l('{n} selected', 'smartbulk'),
+            'multiselect.clear' => $this->l('Clear', 'smartbulk'),
+            'coming_soon.title' => $this->l('{feature} — coming in {version}', 'smartbulk'),
+            'coming_soon.body' => $this->l('Full feature implementation queued after the MVP skeleton is validated.', 'smartbulk'),
+            'bulk.add_action_first' => $this->l('Add at least one action', 'smartbulk'),
+            'bulk.loading_catalog' => $this->l('Loading field catalog…', 'smartbulk'),
+            'bulk.loading_fields' => $this->l('Loading fields…', 'smartbulk'),
+            'bulk.back' => $this->l('← Back', 'smartbulk'),
+            'bulk.toast_stopped' => $this->l('Batch stopped', 'smartbulk'),
+            'bulk.loading_batch' => $this->l('Loading batch…', 'smartbulk'),
+            'bulk.batch_title' => $this->l('Bulk Batch #{id}', 'smartbulk'),
+            'bulk.batch_counts' => $this->l('{changed} changed · {failed} failed · {total} total', 'smartbulk'),
+            'bulk.processed_items' => $this->l('Processed items', 'smartbulk'),
+            'bulk.processed_items_sub' => $this->l('Recent products modified by this batch', 'smartbulk'),
+            'bulk.no_items' => $this->l('No items processed yet.', 'smartbulk'),
+            'bulk.col_product' => $this->l('Product', 'smartbulk'),
+            'bulk.col_field_changes' => $this->l('Field changes', 'smartbulk'),
+            'bulk.n_failed' => $this->l('{n} failed', 'smartbulk'),
+            'bulk.n_changed' => $this->l('✓ {n} changed', 'smartbulk'),
+            'bulk.toast_segment_saved' => $this->l('Segment "{name}" saved', 'smartbulk'),
+            'bulk.toast_segment_save_failed' => $this->l('Could not save segment', 'smartbulk'),
+            'bulk.segment_name' => $this->l('Segment name', 'smartbulk'),
+            'bulk.close_up' => $this->l('Close ▴', 'smartbulk'),
+            'bulk.load_saved_title' => $this->l('Load saved segment', 'smartbulk'),
+            'bulk.load_saved_hint' => $this->l('Only nested AND/OR segments (Bulk Editor format) are listed here.', 'smartbulk'),
+            'bulk.no_saved_segments' => $this->l('No saved Bulk-Editor segments yet.', 'smartbulk'),
+            'bulk.toast_segment_loaded' => $this->l('Loaded "{name}"', 'smartbulk'),
+            'common.saving' => $this->l('Saving…', 'smartbulk'),
+            'dashboard.loading' => $this->l('Loading dashboard…', 'smartbulk'),
+            'dashboard.no_matching' => $this->l('No matching products', 'smartbulk'),
+            'dashboard.could_not_open' => $this->l('Could not open', 'smartbulk'),
+            'dashboard.undo_title' => $this->l('Undo batch #{id}?', 'smartbulk'),
+            'dashboard.undo_msg_one' => $this->l('Revert {n} change.', 'smartbulk'),
+            'dashboard.undo_msg_many' => $this->l('Revert {n} changes.', 'smartbulk'),
+            'health.no_matching_found' => $this->l('No matching products found', 'smartbulk'),
+            'health.open_bulk_failed' => $this->l('Could not open in Bulk Editor', 'smartbulk'),
+            'common.no_name' => $this->l('(no name)', 'smartbulk'),
+            'history.col.id' => $this->l('ID', 'smartbulk'),
+            'history.of_n' => $this->l('of {n}', 'smartbulk'),
+            'history.no_log_entries' => $this->l('No log entries recorded.', 'smartbulk'),
+            'history.col.prod' => $this->l('Prod.', 'smartbulk'),
+            'history.col.lang' => $this->l('Lang', 'smartbulk'),
+            'history.col.field' => $this->l('Field', 'smartbulk'),
+            'history.col.old' => $this->l('Old', 'smartbulk'),
+            'history.col.new' => $this->l('New', 'smartbulk'),
+            'history.no_runs' => $this->l('No runs recorded.', 'smartbulk'),
+            'history.runs_summary' => $this->l('{n} run(s) · {tokens} total tokens · ${cost} total', 'smartbulk'),
+            'history.col.name' => $this->l('Name', 'smartbulk'),
+            'history.col.output' => $this->l('Output', 'smartbulk'),
+            'history.col.tokens' => $this->l('Tokens', 'smartbulk'),
+            'history.col.cost' => $this->l('Cost', 'smartbulk'),
+            'status.changed' => $this->l('changed', 'smartbulk'),
+            'bulk.toast_batch_started' => $this->l('Batch #{id} started', 'smartbulk'),
+            'toast.restored_n' => $this->l('Restored {n} changes', 'smartbulk'),
+            'status.unchanged' => $this->l('unchanged', 'smartbulk'),
+            'status.skipped' => $this->l('skipped', 'smartbulk'),
         ];
     }
 
@@ -998,7 +1296,7 @@ class SmartBulk extends Module
             if (class_exists('\PrestaShop\PrestaShop\Core\Grid\Action\Bulk\Type\SubmitBulkAction')) {
                 $cls = '\PrestaShop\PrestaShop\Core\Grid\Action\Bulk\Type\SubmitBulkAction';
                 $action = new $cls('smartbulk_edit_selected');
-                if (method_exists($action, 'setName'))    $action->setName('Edit with SmartBulk');
+                if (method_exists($action, 'setName'))    $action->setName($this->plainL('Edit with SmartBulk'));
                 if (method_exists($action, 'setOptions')) $action->setOptions([
                     'submit_route'  => 'smartbulk_grid_handoff',
                     'submit_method' => 'POST',
@@ -1013,7 +1311,7 @@ class SmartBulk extends Module
                 $colCls = '\PrestaShop\PrestaShop\Core\Grid\Column\Type\Common\HtmlColumn';
                 /** @var object $healthCol */
                 $healthCol = new $colCls('smartbulk_health');
-                if (method_exists($healthCol, 'setName')) $healthCol->setName('Health');
+                if (method_exists($healthCol, 'setName')) $healthCol->setName($this->plainL('Health'));
                 if (method_exists($healthCol, 'setOptions')) {
                     $healthCol->setOptions([
                         'field'     => 'smartbulk_score',
@@ -1035,7 +1333,7 @@ class SmartBulk extends Module
                 // Adjacent Smart-fix column with the per-row CTA button.
                 /** @var object $smartFixCol */
                 $smartFixCol = new $colCls('smartbulk_smart_fix');
-                if (method_exists($smartFixCol, 'setName'))    $smartFixCol->setName('Smart fix');
+                if (method_exists($smartFixCol, 'setName'))    $smartFixCol->setName($this->plainL('Smart fix'));
                 if (method_exists($smartFixCol, 'setOptions')) {
                     $smartFixCol->setOptions([
                         'field'     => 'smartbulk_smart_fix',
@@ -1061,7 +1359,7 @@ class SmartBulk extends Module
                 $rowCls = '\PrestaShop\PrestaShop\Core\Grid\Action\Row\Type\LinkRowAction';
                 /** @var object $rowAction */
                 $rowAction = new $rowCls('smartbulk_edit_one');
-                if (method_exists($rowAction, 'setName')) $rowAction->setName('Edit in SmartBulk');
+                if (method_exists($rowAction, 'setName')) $rowAction->setName($this->plainL('Edit in SmartBulk'));
                 if (method_exists($rowAction, 'setIcon')) $rowAction->setIcon('edit');
                 if (method_exists($rowAction, 'setOptions')) $rowAction->setOptions([
                     'route'             => 'smartbulk_grid_handoff',
@@ -1193,6 +1491,11 @@ class SmartBulk extends Module
             $sqlEsc = static fn (string $s): string => "'" . str_replace("'", "''", $s) . "'";
             $aiBaseLit   = $sqlEsc($aiBase);
             $bulkBaseLit = $sqlEsc($bulkBase);
+            // Button labels: translated, HTML-escaped, then quoted for SQL.
+            $labelLit = fn (string $s): string => $sqlEsc(htmlspecialchars($this->plainL($s), ENT_QUOTES, 'UTF-8'));
+            $fixAiLit    = $labelLit('✨ Fix with AI');
+            $fixBulkLit  = $labelLit('📝 Fix in bulk');
+            $editFieldsLit = $labelLit('Edit fields →');
 
             $aiFixIssues   = "'missing_meta_title','missing_meta_description','missing_short_desc','missing_description','missing_alt_text','meta_title_too_short','meta_desc_too_short'";
             $bulkFixIssues = "'meta_title_too_long','meta_desc_too_long','missing_link_rewrite'";
@@ -1213,14 +1516,14 @@ class SmartBulk extends Module
                                 WHEN \'missing_alt_text\'         THEN \'alt_text\'
                                 ELSE \'\'
                             END,
-                            \'" target="_blank" style="display:inline-block;padding:4px 10px;font-size:11px;font-weight:500;color:#fff;background:#6366f1;border-radius:4px;text-decoration:none">✨ Fix with AI</a>\'
+                            \'" target="_blank" style="display:inline-block;padding:4px 10px;font-size:11px;font-weight:500;color:#fff;background:#6366f1;border-radius:4px;text-decoration:none">\', ' . $fixAiLit . ', \'</a>\'
                         )
                     WHEN ' . $topIdExpr . ' IN (' . $bulkFixIssues . ') THEN
                         CONCAT(
-                            \'<a href="\', ' . $bulkBaseLit . ', \'?productId=\', p.id_product, \'" target="_blank" style="display:inline-block;padding:4px 10px;font-size:11px;font-weight:500;color:#fff;background:#475569;border-radius:4px;text-decoration:none">📝 Fix in bulk</a>\'
+                            \'<a href="\', ' . $bulkBaseLit . ', \'?productId=\', p.id_product, \'" target="_blank" style="display:inline-block;padding:4px 10px;font-size:11px;font-weight:500;color:#fff;background:#475569;border-radius:4px;text-decoration:none">\', ' . $fixBulkLit . ', \'</a>\'
                         )
                     ELSE
-                        \'<span style="color:#94a3b8;font-size:11px">Edit fields →</span>\'
+                        CONCAT(\'<span style="color:#94a3b8;font-size:11px">\', ' . $editFieldsLit . ', \'</span>\')
                 END AS smartbulk_smart_fix';
             $qb->addSelect(trim($smartFixHtml));
         } catch (\Throwable $e) {
@@ -1316,6 +1619,28 @@ class SmartBulk extends Module
                 'id_product'    => $idProduct,
                 'smartbulk_url' => $smartbulkUrl,
                 'issue_meta'    => $issueMeta,
+                't'             => [
+                    'health'          => $this->plainL('Health'),
+                    'strong'          => $this->plainL('Strong'),
+                    'needs_attention' => $this->plainL('Needs attention'),
+                    'critical'        => $this->plainL('Critical'),
+                    'group_seo'       => $this->plainL('SEO'),
+                    'group_content'   => $this->plainL('Content'),
+                    'group_codes'     => $this->plainL('Product codes'),
+                    'no_issues'       => $this->plainL('No issues detected for this product.'),
+                    'issues_detected' => $this->plainL('Issues detected: {n}.'),
+                    'click'           => $this->plainL('Click'),
+                    'fix'             => $this->plainL('Fix'),
+                    'fix_hint'        => $this->plainL('to jump to the right SmartBulk tool with this product preselected.'),
+                    'severity_high'   => $this->plainL('high'),
+                    'severity_medium' => $this->plainL('medium'),
+                    'severity_low'    => $this->plainL('low'),
+                    'fix_ai'          => $this->plainL('✨ Fix with AI'),
+                    'fix_bulk'        => $this->plainL('📝 Fix in bulk'),
+                    'edit_manually'   => $this->plainL('Edit manually above ↑'),
+                    'recomputed'      => $this->plainL('Score is recomputed every time you save this product.'),
+                    'open_overview'   => $this->plainL('Open Content Health overview →'),
+                ],
             ]);
         } catch (\Throwable $e) {
             \PrestaShopLogger::addLog('SmartBulk product extra hook: ' . $e->getMessage(), 1, null, 'SmartBulk');
@@ -1332,22 +1657,31 @@ class SmartBulk extends Module
     private function resolveIssueMeta(): array
     {
         return [
-            'missing_meta_title'        => ['label' => 'Missing meta title',         'group' => 'seo',     'severity' => 'high',   'fixable_by' => 'ai',   'task_type' => 'meta_title',       'bulk_field' => 'meta_title'],
-            'missing_meta_description'  => ['label' => 'Missing meta description',   'group' => 'seo',     'severity' => 'high',   'fixable_by' => 'ai',   'task_type' => 'meta_description', 'bulk_field' => 'meta_description'],
-            'meta_title_too_short'      => ['label' => 'Meta title < 30 chars',      'group' => 'seo',     'severity' => 'medium', 'fixable_by' => 'ai',   'task_type' => 'meta_title',       'bulk_field' => 'meta_title'],
-            'meta_title_too_long'       => ['label' => 'Meta title > 60 chars',     'group' => 'seo',     'severity' => 'medium', 'fixable_by' => 'bulk', 'task_type' => null,               'bulk_field' => 'meta_title'],
-            'meta_desc_too_short'       => ['label' => 'Meta description < 70',     'group' => 'seo',     'severity' => 'medium', 'fixable_by' => 'ai',   'task_type' => 'meta_description', 'bulk_field' => 'meta_description'],
-            'meta_desc_too_long'        => ['label' => 'Meta description > 160',    'group' => 'seo',     'severity' => 'low',    'fixable_by' => 'bulk', 'task_type' => null,               'bulk_field' => 'meta_description'],
-            'missing_link_rewrite'      => ['label' => 'Missing friendly URL',       'group' => 'seo',     'severity' => 'high',   'fixable_by' => 'bulk', 'task_type' => null,               'bulk_field' => 'link_rewrite'],
-            'missing_short_desc'        => ['label' => 'Missing short description', 'group' => 'content', 'severity' => 'high',   'fixable_by' => 'ai',   'task_type' => 'short_desc',       'bulk_field' => 'description_short'],
-            'missing_description'       => ['label' => 'Missing long description',  'group' => 'content', 'severity' => 'medium', 'fixable_by' => 'ai',   'task_type' => 'long_desc',        'bulk_field' => 'description'],
-            'short_desc_too_short'      => ['label' => 'Short description < 80',    'group' => 'content', 'severity' => 'low',    'fixable_by' => 'ai',   'task_type' => 'short_desc',       'bulk_field' => 'description_short'],
-            'description_too_short'     => ['label' => 'Long description < 300',    'group' => 'content', 'severity' => 'low',    'fixable_by' => 'ai',   'task_type' => 'long_desc',        'bulk_field' => 'description'],
-            'missing_main_image'        => ['label' => 'No product images',          'group' => 'content', 'severity' => 'high',   'fixable_by' => 'manual', 'task_type' => null,             'bulk_field' => null],
-            'missing_alt_text'          => ['label' => 'Images without alt text',   'group' => 'content', 'severity' => 'medium', 'fixable_by' => 'ai',   'task_type' => 'alt_text',         'bulk_field' => null],
-            'missing_reference'         => ['label' => 'Missing reference (SKU)',   'group' => 'codes',   'severity' => 'high',   'fixable_by' => 'manual', 'task_type' => null,             'bulk_field' => null],
-            'missing_ean'               => ['label' => 'Missing EAN/GTIN',          'group' => 'codes',   'severity' => 'medium', 'fixable_by' => 'manual', 'task_type' => null,             'bulk_field' => null],
+            'missing_meta_title'        => ['label' => $this->plainL('Missing meta title'),         'group' => 'seo',     'severity' => 'high',   'fixable_by' => 'ai',   'task_type' => 'meta_title',       'bulk_field' => 'meta_title'],
+            'missing_meta_description'  => ['label' => $this->plainL('Missing meta description'),   'group' => 'seo',     'severity' => 'high',   'fixable_by' => 'ai',   'task_type' => 'meta_description', 'bulk_field' => 'meta_description'],
+            'meta_title_too_short'      => ['label' => $this->plainL('Meta title < 30 chars'),      'group' => 'seo',     'severity' => 'medium', 'fixable_by' => 'ai',   'task_type' => 'meta_title',       'bulk_field' => 'meta_title'],
+            'meta_title_too_long'       => ['label' => $this->plainL('Meta title > 60 chars'),     'group' => 'seo',     'severity' => 'medium', 'fixable_by' => 'bulk', 'task_type' => null,               'bulk_field' => 'meta_title'],
+            'meta_desc_too_short'       => ['label' => $this->plainL('Meta description < 70'),     'group' => 'seo',     'severity' => 'medium', 'fixable_by' => 'ai',   'task_type' => 'meta_description', 'bulk_field' => 'meta_description'],
+            'meta_desc_too_long'        => ['label' => $this->plainL('Meta description > 160'),    'group' => 'seo',     'severity' => 'low',    'fixable_by' => 'bulk', 'task_type' => null,               'bulk_field' => 'meta_description'],
+            'missing_link_rewrite'      => ['label' => $this->plainL('Missing friendly URL'),       'group' => 'seo',     'severity' => 'high',   'fixable_by' => 'bulk', 'task_type' => null,               'bulk_field' => 'link_rewrite'],
+            'missing_short_desc'        => ['label' => $this->plainL('Missing short description'), 'group' => 'content', 'severity' => 'high',   'fixable_by' => 'ai',   'task_type' => 'short_desc',       'bulk_field' => 'description_short'],
+            'missing_description'       => ['label' => $this->plainL('Missing long description'),  'group' => 'content', 'severity' => 'medium', 'fixable_by' => 'ai',   'task_type' => 'long_desc',        'bulk_field' => 'description'],
+            'short_desc_too_short'      => ['label' => $this->plainL('Short description < 80'),    'group' => 'content', 'severity' => 'low',    'fixable_by' => 'ai',   'task_type' => 'short_desc',       'bulk_field' => 'description_short'],
+            'description_too_short'     => ['label' => $this->plainL('Long description < 300'),    'group' => 'content', 'severity' => 'low',    'fixable_by' => 'ai',   'task_type' => 'long_desc',        'bulk_field' => 'description'],
+            'missing_main_image'        => ['label' => $this->plainL('No product images'),          'group' => 'content', 'severity' => 'high',   'fixable_by' => 'manual', 'task_type' => null,             'bulk_field' => null],
+            'missing_alt_text'          => ['label' => $this->plainL('Images without alt text'),   'group' => 'content', 'severity' => 'medium', 'fixable_by' => 'ai',   'task_type' => 'alt_text',         'bulk_field' => null],
+            'missing_reference'         => ['label' => $this->plainL('Missing reference (SKU)'),   'group' => 'codes',   'severity' => 'high',   'fixable_by' => 'manual', 'task_type' => null,             'bulk_field' => null],
+            'missing_ean'               => ['label' => $this->plainL('Missing EAN/GTIN'),          'group' => 'codes',   'severity' => 'medium', 'fixable_by' => 'manual', 'task_type' => null,             'bulk_field' => null],
         ];
+    }
+
+    /**
+     * Translated string without the HTML escaping $this->l() applies, for
+     * values that Twig or the caller escape themselves.
+     */
+    private function plainL(string $string): string
+    {
+        return htmlspecialchars_decode($this->l($string, 'smartbulk'), ENT_QUOTES);
     }
 
     public function hookActionProductDelete(array $params): void

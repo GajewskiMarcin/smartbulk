@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import Nav from './components/Nav';
+import { t2 } from './lib/i18n';
 import Dashboard from './routes/Dashboard';
 import BulkEditor from './routes/BulkEditor';
 import AIAssistant from './routes/AIAssistant';
@@ -82,7 +83,7 @@ function GridHandoffRouter() {
       state: {
         handoff: {
           productIds: h.product_ids,
-          label: `Selected from PrestaShop product list (${h.product_ids.length.toLocaleString()})`,
+          label: t2('app.grid_handoff_label', 'Selected from PrestaShop product list ({n})', { n: h.product_ids.length.toLocaleString() }),
           source: 'product_grid',
         },
       },

@@ -41,9 +41,13 @@ const TASK_CARDS: { type: TaskType; emoji: string; blurb: string }[] = [
 
 // Rough average cost per item, for "estimate before running" hints.
 const COST_ESTIMATES: Record<string, number> = {
-  'claude-haiku-4-5':  0.002,
+  'claude-haiku-4-5':  0.0025,
+  'claude-haiku-5-5':  0.0003,
   'claude-sonnet-4-6': 0.010,
+  'claude-sonnet-5':   0.0067,
+  'claude-sonnet-5-5': 0.0067,
   'claude-opus-4-7':   0.050,
+  'claude-opus-5-5':   0.040,
   'gpt-4o-mini':       0.001,
   'gpt-4o':            0.008,
 };
@@ -136,8 +140,8 @@ export default function AIAssistant() {
 
   const singleMutation = useMutation({
     mutationFn: () => {
-      if (!selectedPrompt) throw new Error('Pick a prompt first');
-      if (!scope.single) throw new Error('Pick a product first');
+      if (!selectedPrompt) throw new Error(t('ai.pick_prompt_first', 'Pick a prompt first'));
+      if (!scope.single) throw new Error(t('ai.pick_product_first', 'Pick a product first'));
       return aiApi.generate({
         id_prompt: selectedPrompt.id_prompt,
         id_product: scope.single.id_product,
@@ -147,15 +151,15 @@ export default function AIAssistant() {
     },
     onSuccess: (run) => {
       setSingleResult(run);
-      toast.show('Generated — review below', 'success');
+      toast.show(t('ai.toast_generated', 'Generated — review below'), 'success');
     },
-    onError: (e: Error) => toast.show(e.message || 'Generation failed', 'error'),
+    onError: (e: Error) => toast.show(e.message || t('toast.generation_failed', 'Generation failed'), 'error'),
   });
 
   const batchCreateMutation = useMutation({
     mutationFn: () => {
-      if (!selectedPrompt) throw new Error('Pick a prompt first');
-      if (!filterSpec) throw new Error('Pick a scope first');
+      if (!selectedPrompt) throw new Error(t('ai.pick_prompt_first', 'Pick a prompt first'));
+      if (!filterSpec) throw new Error(t('ai.scope_pick_first', 'Pick a scope first'));
       return aiApi.createBatch({
         id_prompt: selectedPrompt.id_prompt,
         filter_spec: filterSpec,
@@ -165,9 +169,9 @@ export default function AIAssistant() {
     },
     onSuccess: (status) => {
       setActiveBatchId(status.id_batch);
-      toast.show(`Batch #${status.id_batch} started with ${status.total} products`, 'info');
+      toast.show(t2('ai.toast_batch_started', 'Batch #{id} started with {n} products', { id: status.id_batch, n: status.total }), 'info');
     },
-    onError: (e: Error) => toast.show(e.message || 'Could not start batch', 'error'),
+    onError: (e: Error) => toast.show(e.message || t('ai.toast_batch_start_failed', 'Could not start batch'), 'error'),
   });
 
   if (activeBatchId !== null) {
@@ -206,7 +210,7 @@ export default function AIAssistant() {
             >
               <div className="text-[18px] mb-1">{card.emoji}</div>
               <div className="font-semibold text-[13px]">{t('task.' + card.type, TASK_TYPE_LABELS[card.type])}</div>
-              <div className="text-[11px] text-muted-foreground">{card.blurb}</div>
+              <div className="text-[11px] text-muted-foreground">{t('ai.blurb.' + card.type, card.blurb)}</div>
             </button>
           ))}
         </div>
@@ -306,7 +310,7 @@ export default function AIAssistant() {
             onAccept={async () => {
               try {
                 await aiApi.accept(singleResult.id_run);
-                toast.show('Applied to product', 'success');
+                toast.show(t('ai.toast_applied_to_product', 'Applied to product'), 'success');
                 setSingleResult({ ...singleResult, status: 'accepted' });
               } catch (e) {
                 toast.show((e as Error).message, 'error');
@@ -315,7 +319,7 @@ export default function AIAssistant() {
             onReject={async () => {
               try {
                 await aiApi.reject(singleResult.id_run);
-                toast.show('Rejected', 'info');
+                toast.show(t('toast.rejected', 'Rejected'), 'info');
                 setSingleResult({ ...singleResult, status: 'rejected' });
               } catch (e) {
                 toast.show((e as Error).message, 'error');
@@ -364,11 +368,11 @@ function BatchRunner({ idBatch, onExit }: { idBatch: number; onExit: () => void 
       // Budget / rate limit hit → the batch paused itself; stop hammering and tell the user.
       if (batch?.paused) {
         setAutoProcess(false);
-        toast.show(batch.pause_reason || 'Paused — AI limit reached. Try again later.', 'info');
+        toast.show(batch.pause_reason || t('ai.toast_paused', 'Paused — AI limit reached. Try again later.'), 'info');
       }
       qc.invalidateQueries({ queryKey: ['ai', 'batch', idBatch] });
     },
-    onError: (e: Error) => toast.show(e.message || 'Processing failed', 'error'),
+    onError: (e: Error) => toast.show(e.message || t('ai.toast_processing_failed', 'Processing failed'), 'error'),
   });
 
   // Auto-drive the queue
@@ -396,7 +400,7 @@ function BatchRunner({ idBatch, onExit }: { idBatch: number; onExit: () => void 
     setAcceptingId(idRun);
     try {
       await aiApi.accept(idRun);
-      toast.show('Applied', 'success');
+      toast.show(t('toast.applied', 'Applied'), 'success');
       await qc.invalidateQueries({ queryKey: ['ai', 'batch', idBatch] });
     } catch (e) { toast.show((e as Error).message, 'error'); }
     finally { setAcceptingId(null); }
@@ -406,7 +410,7 @@ function BatchRunner({ idBatch, onExit }: { idBatch: number; onExit: () => void 
     setRejectingId(idRun);
     try {
       await aiApi.reject(idRun);
-      toast.show('Rejected', 'info');
+      toast.show(t('toast.rejected', 'Rejected'), 'info');
       await qc.invalidateQueries({ queryKey: ['ai', 'batch', idBatch] });
     } catch (e) { toast.show((e as Error).message, 'error'); }
     finally { setRejectingId(null); }
@@ -434,19 +438,19 @@ function BatchRunner({ idBatch, onExit }: { idBatch: number; onExit: () => void 
         if (res.remaining === 0) break;
         if (res.accepted === 0 && res.failed > 0) {
           // Whole chunk failed — bail out, don't spin forever
-          toast.show(`Chunk failed entirely (${res.failed}). Stopping.`, 'error');
+          toast.show(t2('ai.toast_chunk_failed', 'Chunk failed entirely ({n}). Stopping.', { n: res.failed }), 'error');
           break;
         }
       }
       if (bulkCancelRef.current) {
-        toast.show(`Stopped at ${done}/${totalPending}`, 'info');
+        toast.show(t2('ai.toast_stopped_at', 'Stopped at {done}/{total}', { done, total: totalPending }), 'info');
       } else if (failed > 0) {
-        toast.show(`Accepted ${done} (${failed} failed)`, 'info');
+        toast.show(t2('ai.toast_accepted_n_failed', 'Accepted {n} ({failed} failed)', { n: done, failed }), 'info');
       } else {
-        toast.show(`Accepted ${done}`, 'success');
+        toast.show(t2('ai.toast_accepted_n', 'Accepted {n}', { n: done }), 'success');
       }
     } catch (e) {
-      toast.show((e as Error).message || 'Accept all failed', 'error');
+      toast.show((e as Error).message || t('ai.toast_accept_all_failed', 'Accept all failed'), 'error');
     } finally {
       setBulkBusy(false);
       setBulkProgress(null);
@@ -477,9 +481,14 @@ function BatchRunner({ idBatch, onExit }: { idBatch: number; onExit: () => void 
         if (res.remaining === 0) break;
         if (res.rejected === 0) break; // nothing happened — stop to avoid loop
       }
-      toast.show(bulkCancelRef.current ? `Stopped at ${done}/${totalPending}` : `Rejected ${done}`, 'info');
+      toast.show(
+        bulkCancelRef.current
+          ? t2('ai.toast_stopped_at', 'Stopped at {done}/{total}', { done, total: totalPending })
+          : t2('ai.toast_rejected_n', 'Rejected {n}', { n: done }),
+        'info'
+      );
     } catch (e) {
-      toast.show((e as Error).message || 'Reject all failed', 'error');
+      toast.show((e as Error).message || t('ai.toast_reject_all_failed', 'Reject all failed'), 'error');
     } finally {
       setBulkBusy(false);
       setBulkProgress(null);
@@ -494,7 +503,7 @@ function BatchRunner({ idBatch, onExit }: { idBatch: number; onExit: () => void 
   return (
     <>
       <PageHead
-        title={`Batch #${batch.id_batch}`}
+        title={t2('ai.batch_title', 'Batch #{id}', { id: batch.id_batch })}
         subtitle={
           <>
             {t('task.' + batch.task_type, TASK_TYPE_LABELS[batch.task_type])} · {batch.prompt.name} ·{' '}
@@ -543,10 +552,10 @@ function BatchRunner({ idBatch, onExit }: { idBatch: number; onExit: () => void 
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4">
-          <Stat label="Pending approval" value={batch.counts.pending} tone="primary" />
-          <Stat label="Accepted"          value={batch.counts.accepted} tone="success" />
-          <Stat label="Rejected"          value={batch.counts.rejected} tone="destructive" />
-          <Stat label="Failed"            value={batch.counts.failed}   tone="destructive" />
+          <Stat label={t('ai.stat_pending', 'Pending approval')} value={batch.counts.pending} tone="primary" />
+          <Stat label={t('status.accepted', 'accepted')}       value={batch.counts.accepted} tone="success" />
+          <Stat label={t('status.rejected', 'rejected')}       value={batch.counts.rejected} tone="destructive" />
+          <Stat label={t('status.failed', 'failed')}           value={batch.counts.failed}   tone="destructive" />
         </div>
       </Card>
 
@@ -581,8 +590,8 @@ function BatchRunner({ idBatch, onExit }: { idBatch: number; onExit: () => void 
 
       <Card>
         <SectionHeader
-          title="Approval queue"
-          subtitle="Per-item review or bulk actions"
+          title={t('ai.approval_queue', 'Approval queue')}
+          subtitle={t('ai.approval_queue_sub', 'Per-item review or bulk actions')}
         />
         <ApprovalQueue
           runs={batch.runs ?? []}
@@ -613,11 +622,11 @@ function Stat({ label, value, tone }: { label: string; value: number; tone: 'pri
 }
 
 function BatchStatusBadge({ status }: { status: BatchStatus['status'] }) {
-  if (status === 'running')  return <Badge variant="primary">running</Badge>;
-  if (status === 'success')  return <Badge variant="success">✓ done</Badge>;
-  if (status === 'partial')  return <Badge variant="warning">partial</Badge>;
-  if (status === 'failed')   return <Badge variant="destructive">failed</Badge>;
-  return <Badge variant="muted">{status}</Badge>;
+  if (status === 'running')  return <Badge variant="primary">{t('status.running', 'running')}</Badge>;
+  if (status === 'success')  return <Badge variant="success">✓ {t('status.done', 'done')}</Badge>;
+  if (status === 'partial')  return <Badge variant="warning">{t('status.partial', 'partial')}</Badge>;
+  if (status === 'failed')   return <Badge variant="destructive">{t('status.failed', 'failed')}</Badge>;
+  return <Badge variant="muted">{t('status.' + status, status)}</Badge>;
 }
 
 // =========================================================================
@@ -643,10 +652,10 @@ function SingleResultCard({
   return (
     <Card>
       <SectionHeader
-        title="Test result"
+        title={t('ai.test_result', 'Test result')}
         subtitle={
           <>
-            {run.model} · {run.tokens_in} in / {run.tokens_out} out ·{' '}
+            {run.model} · {run.tokens_in} {t('ai.tokens_in', 'in')} / {run.tokens_out} {t('ai.tokens_out', 'out')} ·{' '}
             <strong>${run.cost_usd.toFixed(6)}</strong> · {run.latency_ms}ms
           </>
         }
@@ -657,36 +666,38 @@ function SingleResultCard({
               : run.status === 'failed' ? 'destructive'
               : 'primary'
           }>
-            {run.status}
+            {t('status.' + run.status, run.status)}
           </Badge>
         }
       />
       <div className="border border-border rounded-md bg-muted p-4 mb-4">
         <div className="text-[11px] uppercase tracking-wide text-muted-foreground font-semibold mb-1">
-          Generated output
+          {t('ai.generated_output', 'Generated output')}
         </div>
         <div className="whitespace-pre-wrap font-mono text-[12px] leading-relaxed text-slate-900 break-words">
           {run.output}
         </div>
-        <div className="text-[11px] text-muted-foreground mt-2">{run.output.length} chars</div>
+        <div className="text-[11px] text-muted-foreground mt-2">{t2('ai.n_chars', '{n} chars', { n: run.output.length })}</div>
       </div>
 
       {!supportsAutoApply && run.status === 'pending' && (
         <div className="mb-4 p-3 rounded-md border border-amber-200 bg-amber-50 text-amber-900 text-[12px]">
-          <strong>Note:</strong> Auto-apply is not available for {TASK_TYPE_LABELS[run.prompt.task_type]} yet.
-          Accept will mark the run as accepted but won't write to the product.
+          <strong>{t('ai.note_label', 'Note:')}</strong>{' '}
+          {t2('ai.note_no_autoapply', "Auto-apply is not available for {task} yet. Accept will mark the run as accepted but won't write to the product.", {
+            task: t('task.' + run.prompt.task_type, TASK_TYPE_LABELS[run.prompt.task_type]),
+          })}
         </div>
       )}
 
       <div className="flex items-center justify-end gap-2 pt-4 border-t border-border">
         <Button onClick={onRegenerate} disabled={regenerating}>
-          {regenerating ? 'Regenerating…' : '↻ Regenerate'}
+          {regenerating ? t('ai.regenerating', 'Regenerating…') : t('ai.regenerate', '↻ Regenerate')}
         </Button>
         <Button onClick={onReject} variant="destructive" disabled={isFinal || regenerating}>
-          ✗ Reject
+          {t('ai.reject', '✗ Reject')}
         </Button>
         <Button onClick={onAccept} variant="primary" disabled={isFinal || regenerating}>
-          {supportsAutoApply ? '✓ Accept & apply' : '✓ Accept'}
+          {supportsAutoApply ? t('ai.accept_apply', '✓ Accept & apply') : t('ai.accept', '✓ Accept')}
         </Button>
       </div>
     </Card>
@@ -723,23 +734,23 @@ function TaskTypeParams({
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3 pt-3 border-t border-border">
       {needsField && (
-        <Field label="Target field" hint="Which product field the output will be written to.">
+        <Field label={t('ai.field_target_field', 'Target field')} hint={t('ai.field_target_field_hint', 'Which product field the output will be written to.')}>
           <Select value={targetField} onChange={(e) => onTargetFieldChange(e.target.value)}>
-            <option value="">— use prompt default —</option>
+            <option value="">{t('ai.target_use_default', '— use prompt default —')}</option>
             {TARGET_FIELDS.map((f) => (
-              <option key={f.value} value={f.value}>{f.label}</option>
+              <option key={f.value} value={f.value}>{t('ai.target.' + f.value, f.label)}</option>
             ))}
           </Select>
         </Field>
       )}
       {needsLang && (
-        <Field label="Target language" hint="Destination lang — prompt reads source from scope's current lang.">
+        <Field label={t('ai.field_target_lang', 'Target language')} hint={t('ai.field_target_lang_hint', "Destination lang — prompt reads source from scope's current lang.")}>
           <Select
             value={targetLang === '' ? '' : String(targetLang)}
             onChange={(e) => onTargetLangChange(e.target.value === '' ? '' : Number(e.target.value))}
             disabled={langsQuery.isLoading}
           >
-            <option value="">— same as source —</option>
+            <option value="">{t('ai.target_same_as_source', '— same as source —')}</option>
             {(langsQuery.data ?? []).map((l) => (
               <option key={l.id_lang} value={l.id_lang}>
                 {l.name} ({l.iso_code.toUpperCase()})

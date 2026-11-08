@@ -16,6 +16,7 @@ declare(strict_types=1);
 namespace SmartBulk\Service\Security;
 
 use RuntimeException;
+use SmartBulk\Service\Lang;
 
 final class ApiKeyVault
 {
@@ -38,7 +39,7 @@ final class ApiKeyVault
         $tag = '';
         $ciphertext = openssl_encrypt($plaintext, self::CIPHER, $key, OPENSSL_RAW_DATA, $iv, $tag);
         if ($ciphertext === false) {
-            throw new RuntimeException('SmartBulk vault: encryption failed');
+            throw new RuntimeException(Lang::t('SmartBulk vault: encryption failed'));
         }
 
         // Payload layout: [IV 12 bytes][tag 16 bytes][ciphertext N bytes]
@@ -62,7 +63,7 @@ final class ApiKeyVault
 
         $raw = base64_decode(substr($token, 7), true);
         if ($raw === false || strlen($raw) < 12 + 16) {
-            throw new RuntimeException('SmartBulk vault: malformed token');
+            throw new RuntimeException(Lang::t('SmartBulk vault: malformed token'));
         }
 
         $iv = substr($raw, 0, 12);
@@ -72,7 +73,7 @@ final class ApiKeyVault
         $key = $this->deriveKey();
         $plaintext = openssl_decrypt($ciphertext, self::CIPHER, $key, OPENSSL_RAW_DATA, $iv, $tag);
         if ($plaintext === false) {
-            throw new RuntimeException('SmartBulk vault: decryption failed');
+            throw new RuntimeException(Lang::t('SmartBulk vault: decryption failed'));
         }
         return $plaintext;
     }
@@ -98,7 +99,7 @@ final class ApiKeyVault
     private function deriveKey(): string
     {
         if (!defined('_COOKIE_KEY_') || _COOKIE_KEY_ === '') {
-            throw new RuntimeException('SmartBulk vault: _COOKIE_KEY_ is not available');
+            throw new RuntimeException(Lang::t('SmartBulk vault: _COOKIE_KEY_ is not available'));
         }
         // HKDF-like derivation with fixed salt so this module's vault is isolated
         // from anything else that might derive keys from _COOKIE_KEY_.

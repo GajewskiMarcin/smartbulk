@@ -1,6 +1,7 @@
 // SmartBulk — Content Health API client + types
 
 import { api } from './api';
+import { t } from './i18n';
 
 export type Severity = 'low' | 'medium' | 'high';
 export type ProblemGroup = 'seo' | 'content' | 'codes';
@@ -60,7 +61,7 @@ export const healthApi = {
     return api
       .get<{ ok: boolean; report: HealthReport; error?: string }>(`${BASE}/scan${qs.toString() ? `?${qs}` : ''}`)
       .then((r) => {
-        if (!r.ok) throw new Error(r.error || 'Scan failed');
+        if (!r.ok) throw new Error(r.error || t('err.scan_failed', 'Scan failed'));
         return r.report;
       });
   },
@@ -75,7 +76,7 @@ export const healthApi = {
     return api
       .get<{ ok: boolean; items: AffectedProduct[]; total: number; error?: string }>(`${BASE}/products?${qs}`)
       .then((r) => {
-        if (!r.ok) throw new Error(r.error || 'Lookup failed');
+        if (!r.ok) throw new Error(r.error || t('err.lookup_failed', 'Lookup failed'));
         return { items: r.items, total: r.total };
       });
   },
@@ -86,7 +87,7 @@ export const healthApi = {
     return api
       .get<{ ok: boolean; snapshots: HealthSnapshot[]; error?: string }>(`${BASE}/snapshots${qs.toString() ? `?${qs}` : ''}`)
       .then((r) => {
-        if (!r.ok) throw new Error(r.error || 'Snapshots failed');
+        if (!r.ok) throw new Error(r.error || t('err.snapshots_failed', 'Snapshots failed'));
         return r.snapshots;
       });
   },
@@ -99,7 +100,7 @@ export const healthApi = {
     return api
       .get<{ ok: boolean; product_ids: number[]; error?: string }>(`${BASE}/product-ids?${qs}`)
       .then((r) => {
-        if (!r.ok) throw new Error(r.error || 'Lookup failed');
+        if (!r.ok) throw new Error(r.error || t('err.lookup_failed', 'Lookup failed'));
         return r.product_ids;
       });
   },

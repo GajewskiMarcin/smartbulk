@@ -22,6 +22,7 @@ use Db;
 use SmartBulk\Repository\PromptRepository;
 use SmartBulk\Repository\ScheduleRepository;
 use SmartBulk\Repository\SegmentRepository;
+use SmartBulk\Service\Lang;
 use SmartBulk\Service\SettingsService;
 
 final class ConfigPortabilityService
@@ -96,9 +97,10 @@ final class ConfigPortabilityService
         ];
 
         if (!isset($payload['schema_version']) || (int) $payload['schema_version'] !== self::SCHEMA_VERSION) {
-            throw new \InvalidArgumentException(
-                'Incompatible schema_version. Expected ' . self::SCHEMA_VERSION . ', got ' . ($payload['schema_version'] ?? 'missing')
-            );
+            throw new \InvalidArgumentException(Lang::t(
+                'Incompatible configuration file (schema_version). Expected {expected}, got {got}',
+                ['expected' => self::SCHEMA_VERSION, 'got' => $payload['schema_version'] ?? 'missing']
+            ));
         }
 
         if (is_array($payload['settings']  ?? null)) $this->importSettings($payload['settings'],  $report['settings']);
@@ -218,7 +220,7 @@ final class ConfigPortabilityService
         foreach ($prompts as $p) {
             try {
                 if (empty($p['slug']) || empty($p['name']) || empty($p['task_type']) || empty($p['versions'])) {
-                    throw new \InvalidArgumentException('Prompt entry missing slug/name/task_type/versions');
+                    throw new \InvalidArgumentException(Lang::t('Prompt entry missing slug/name/task_type/versions'));
                 }
                 $existing = $this->promptRepo->findPromptBySlug((string) $p['slug']);
 
@@ -265,7 +267,7 @@ final class ConfigPortabilityService
 
                 $existing !== null ? $report['updated']++ : $report['created']++;
             } catch (\Throwable $e) {
-                $report['errors'][] = sprintf('Prompt "%s": %s', (string) ($p['slug'] ?? '?'), $e->getMessage());
+                $report['errors'][] = Lang::t('Prompt "{name}": {message}', ['name' => (string) ($p['slug'] ?? '?'), 'message' => $e->getMessage()]);
             }
         }
     }
@@ -280,7 +282,7 @@ final class ConfigPortabilityService
         $idEmployee = Context::getContext()->employee ? (int) Context::getContext()->employee->id : null;
         foreach ($segments as $s) {
             try {
-                if (empty($s['name'])) throw new \InvalidArgumentException('Segment missing name');
+                if (empty($s['name'])) throw new \InvalidArgumentException(Lang::t('Segment missing name'));
                 $this->segmentRepo->create([
                     'id_shop'     => $idShop,
                     'name'        => (string) $s['name'],
@@ -290,7 +292,7 @@ final class ConfigPortabilityService
                 ]);
                 $report['created']++;
             } catch (\Throwable $e) {
-                $report['errors'][] = sprintf('Segment "%s": %s', (string) ($s['name'] ?? '?'), $e->getMessage());
+                $report['errors'][] = Lang::t('Segment "{name}": {message}', ['name' => (string) ($s['name'] ?? '?'), 'message' => $e->getMessage()]);
             }
         }
     }
@@ -307,7 +309,7 @@ final class ConfigPortabilityService
         foreach ($schedules as $s) {
             try {
                 if (empty($s['name']) || empty($s['cron_expression']) || empty($s['job_type'])) {
-                    throw new \InvalidArgumentException('Schedule missing required fields');
+                    throw new \InvalidArgumentException(Lang::t('Schedule missing required fields'));
                 }
                 // Insert raw — next_run_at is null on import; the next heartbeat reschedules.
                 Db::getInstance()->insert('smartbulk_schedule', [
@@ -324,7 +326,7 @@ final class ConfigPortabilityService
                 ]);
                 $report['created']++;
             } catch (\Throwable $e) {
-                $report['errors'][] = sprintf('Schedule "%s": %s', (string) ($s['name'] ?? '?'), $e->getMessage());
+                $report['errors'][] = Lang::t('Schedule "{name}": {message}', ['name' => (string) ($s['name'] ?? '?'), 'message' => $e->getMessage()]);
             }
         }
     }

@@ -1,5 +1,6 @@
 import { forwardRef, useState, type InputHTMLAttributes, type SelectHTMLAttributes, type TextareaHTMLAttributes, type ReactNode } from 'react';
 import { cn } from '../lib/utils';
+import { t, t2 } from '../lib/i18n';
 
 // ---------- Label + Field wrapper ----------
 
@@ -56,7 +57,7 @@ export function PasswordInput({ hasStoredValue, maskedPreview, placeholder, ...r
   const [visible, setVisible] = useState(false);
   const effectivePlaceholder =
     hasStoredValue && !rest.value
-      ? `Stored: ${maskedPreview || '••••••••'} — leave blank to keep`
+      ? t2('form.stored_keep', 'Stored: {preview} — leave blank to keep', { preview: maskedPreview || '••••••••' })
       : placeholder;
 
   return (
@@ -75,7 +76,7 @@ export function PasswordInput({ hasStoredValue, maskedPreview, placeholder, ...r
         className="absolute right-2 top-1/2 -translate-y-1/2 text-[11px] font-medium text-slate-500 hover:text-slate-900 px-1.5 py-0.5 rounded"
         tabIndex={-1}
       >
-        {visible ? 'Hide' : 'Show'}
+        {visible ? t('form.hide', 'Hide') : t('form.show', 'Show')}
       </button>
     </div>
   );

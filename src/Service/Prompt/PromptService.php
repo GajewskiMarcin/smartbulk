@@ -19,6 +19,7 @@ use Context;
 use InvalidArgumentException;
 use RuntimeException;
 use SmartBulk\Repository\PromptRepository;
+use SmartBulk\Service\Lang;
 
 final class PromptService
 {
@@ -62,7 +63,7 @@ final class PromptService
     {
         $prompt = $this->repo->findPrompt($idPrompt);
         if ($prompt === null) {
-            throw new InvalidArgumentException("Prompt {$idPrompt} not found");
+            throw new InvalidArgumentException(Lang::t('Prompt {id} not found', ['id' => $idPrompt]));
         }
         $versions = array_map([$this, 'normalizeVersion'], $this->repo->listVersions($idPrompt));
         return [
@@ -89,7 +90,7 @@ final class PromptService
             $slug = $this->generateUniqueSlug($input['name']);
         }
         if ($this->repo->findPromptBySlug($slug) !== null) {
-            throw new InvalidArgumentException("Slug '{$slug}' already taken");
+            throw new InvalidArgumentException(Lang::t('Slug "{slug}" already taken', ['slug' => $slug]));
         }
 
         $idEmployee = $this->currentEmployeeId();
@@ -160,7 +161,7 @@ final class PromptService
         $this->ensurePromptExists($idPrompt);
         $version = $this->repo->findVersion($idVersion);
         if ($version === null || (int) $version['id_prompt'] !== $idPrompt) {
-            throw new InvalidArgumentException('Version does not belong to this prompt');
+            throw new InvalidArgumentException(Lang::t('Version does not belong to this prompt'));
         }
         $this->repo->setCurrentVersion($idPrompt, $idVersion);
         return $this->getDetail($idPrompt);
@@ -179,7 +180,7 @@ final class PromptService
     {
         $p = $this->repo->findPrompt($idPrompt);
         if ($p === null) {
-            throw new InvalidArgumentException("Prompt {$idPrompt} not found");
+            throw new InvalidArgumentException(Lang::t('Prompt {id} not found', ['id' => $idPrompt]));
         }
         return $p;
     }
@@ -188,21 +189,21 @@ final class PromptService
     {
         $name = trim($name);
         if ($name === '' || mb_strlen($name) > 255) {
-            throw new InvalidArgumentException('Name must be between 1 and 255 chars');
+            throw new InvalidArgumentException(Lang::t('Name must be between 1 and 255 chars'));
         }
     }
 
     private function validateTaskType(string $type): void
     {
         if (!in_array($type, self::TASK_TYPES, true)) {
-            throw new InvalidArgumentException("Invalid task_type '{$type}'");
+            throw new InvalidArgumentException(Lang::t('Invalid task type "{type}"', ['type' => $type]));
         }
     }
 
     private function validateProvider(string $provider): string
     {
         if (!in_array($provider, self::PROVIDERS, true)) {
-            throw new InvalidArgumentException("Invalid provider '{$provider}'");
+            throw new InvalidArgumentException(Lang::t('Invalid provider "{provider}"', ['provider' => $provider]));
         }
         return $provider;
     }
@@ -222,7 +223,7 @@ final class PromptService
             $slug = $base . '-' . $i;
             $i++;
             if ($i > 100) {
-                throw new RuntimeException('Could not generate a unique slug');
+                throw new RuntimeException(Lang::t('Could not generate a unique slug'));
             }
         }
         return $slug;

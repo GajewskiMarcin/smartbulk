@@ -1,6 +1,7 @@
 // SmartBulk — Condition Tree types + operator labels + API
 
 import { api } from './api';
+import { t2, t } from './i18n';
 
 export type ValueType = 'text' | 'int' | 'float' | 'bool' | 'date' | 'enum' | 'related_many' | 'gap';
 
@@ -178,12 +179,12 @@ function renderNode(node: TreeSpec | ConditionNode, fields: FieldDef[], depth: n
   }
   const def = fields.find((f) => f.id === node.field);
   const label = def?.label ?? node.field;
-  const op = OPERATOR_LABELS[node.op] ?? node.op;
+  const op = t('cond.op.' + node.op, OPERATOR_LABELS[node.op] ?? node.op);
   const val = NO_VALUE_OPS.includes(node.op)
     ? ''
     : ' ' + formatValue(node, def);
   const lang = def?.lang && node.id_lang !== null && node.id_lang !== undefined
-    ? ` [lang ${node.id_lang}]`
+    ? ' ' + t2('cond.lang_suffix', '[lang {n}]', { n: node.id_lang })
     : '';
   return `${label} ${op}${val}${lang}`;
 }

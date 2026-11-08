@@ -46,7 +46,7 @@ export default function Dashboard() {
       />
 
       {query.isLoading && (
-        <Card><div className="text-[13px] text-muted-foreground py-8 text-center">Loading dashboard…</div></Card>
+        <Card><div className="text-[13px] text-muted-foreground py-8 text-center">{t('dashboard.loading', 'Loading dashboard…')}</div></Card>
       )}
       {query.isError && (
         <Card><div className="text-[13px] text-red-700 py-6 text-center">{(query.error as Error).message}</div></Card>
@@ -139,19 +139,19 @@ function TopIssuesCard({ issues }: { issues: DashboardIssue[] }) {
       return { issue, ids };
     },
     onSuccess: ({ issue, ids }) => {
-      if (ids.length === 0) { toast.show('No matching products', 'info'); return; }
+      if (ids.length === 0) { toast.show(t('dashboard.no_matching', 'No matching products'), 'info'); return; }
       const target = issue.fixable_by === 'ai' ? '/ai' : '/bulk-editor';
       navigate(target, {
         state: {
           handoff: {
             productIds: ids,
-            label: `${issue.label} (${ids.length.toLocaleString()})`,
+            label: `${t('issue.' + issue.id, issue.label)} (${ids.length.toLocaleString()})`,
             source: 'dashboard',
           },
         },
       });
     },
-    onError: (e: Error) => toast.show(e.message || 'Could not open', 'error'),
+    onError: (e: Error) => toast.show(e.message || t('dashboard.could_not_open', 'Could not open'), 'error'),
   });
 
   return (
@@ -235,17 +235,19 @@ function RecentActivityCard({ data }: { data: DashboardData }) {
   const undoMutation = useMutation({
     mutationFn: (id: number) => bulkApi.undo(id),
     onSuccess: (res) => {
-      toast.show(`Restored ${res.restored} changes`, 'success');
+      toast.show(t2('toast.restored_n', 'Restored {n} changes', { n: res.restored }), 'success');
       qc.invalidateQueries({ queryKey: ['dashboard'] });
     },
-    onError: (e: Error) => toast.show(e.message || 'Undo failed', 'error'),
+    onError: (e: Error) => toast.show(e.message || t('err.undo_failed', 'Undo failed'), 'error'),
   });
 
   const handleUndo = async (id: number, changed: number) => {
     const ok = await confirm({
-      title: `Undo batch #${id}?`,
-      message: <>Revert <strong>{changed}</strong> change{changed !== 1 ? 's' : ''}.</>,
-      confirmLabel: 'Undo',
+      title: t2('dashboard.undo_title', 'Undo batch #{id}?', { id }),
+      message: changed === 1
+        ? t2('dashboard.undo_msg_one', 'Revert {n} change.', { n: changed })
+        : t2('dashboard.undo_msg_many', 'Revert {n} changes.', { n: changed }),
+      confirmLabel: t('common.undo', 'Undo'),
       tone: 'destructive',
     });
     if (ok) undoMutation.mutate(id);
@@ -349,13 +351,13 @@ function TipCard({ tip }: { tip: NonNullable<DashboardData['tip']> }) {
   const fix = useMutation({
     mutationFn: () => healthApi.productIds(tip.problem_id, { limit: 5000 }),
     onSuccess: (ids) => {
-      if (ids.length === 0) { toast.show('No matching products', 'info'); return; }
+      if (ids.length === 0) { toast.show(t('dashboard.no_matching', 'No matching products'), 'info'); return; }
       const target = tip.fixable_by === 'ai' ? '/ai' : '/bulk-editor';
       navigate(target, {
-        state: { handoff: { productIds: ids, label: `${tip.label} (${ids.length.toLocaleString()})`, source: 'dashboard-tip' } },
+        state: { handoff: { productIds: ids, label: `${t('issue.' + tip.problem_id, tip.label)} (${ids.length.toLocaleString()})`, source: 'dashboard-tip' } },
       });
     },
-    onError: (e: Error) => toast.show(e.message || 'Could not open', 'error'),
+    onError: (e: Error) => toast.show(e.message || t('dashboard.could_not_open', 'Could not open'), 'error'),
   });
 
   return (
@@ -454,9 +456,9 @@ function formatRelative(s: string | null): string {
   const d = new Date(s.replace(' ', 'T') + (s.includes('T') ? '' : 'Z'));
   if (isNaN(d.getTime())) return s;
   const diff = (Date.now() - d.getTime()) / 1000;
-  if (diff < 60)            return 'just now';
-  if (diff < 3600)          return `${Math.floor(diff / 60)} min ago`;
-  if (diff < 86400)         return `${Math.floor(diff / 3600)} h ago`;
-  if (diff < 86400 * 7)     return `${Math.floor(diff / 86400)} d ago`;
+  if (diff < 60)            return t('common.just_now', 'just now');
+  if (diff < 3600)          return `${Math.floor(diff / 60)} ${t('common.min_ago', 'min ago')}`;
+  if (diff < 86400)         return `${Math.floor(diff / 3600)} ${t('common.h_ago', 'h ago')}`;
+  if (diff < 86400 * 7)     return `${Math.floor(diff / 86400)} ${t('common.d_ago', 'd ago')}`;
   return d.toLocaleString();
 }

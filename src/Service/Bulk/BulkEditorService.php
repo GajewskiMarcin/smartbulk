@@ -28,6 +28,7 @@ use RuntimeException;
 use SmartBulk\Repository\MasseditRepository;
 use SmartBulk\Repository\PromptRepository;
 use SmartBulk\Service\Ai\AIService;
+use SmartBulk\Service\Lang;
 
 final class BulkEditorService
 {
@@ -425,15 +426,15 @@ final class BulkEditorService
     public function createBatch(array $productIds, array $actions, ?int $idLang = null, ?array $filterSpec = null, string $mode = 'apply'): array
     {
         if (!$actions) {
-            throw new InvalidArgumentException('No actions supplied');
+            throw new InvalidArgumentException(Lang::t('No actions supplied'));
         }
         $productIds = array_values(array_unique(array_map('intval', $productIds)));
         $productIds = array_values(array_filter($productIds, static fn ($n) => $n > 0));
         if (!$productIds) {
-            throw new InvalidArgumentException('Empty product list');
+            throw new InvalidArgumentException(Lang::t('Empty product list'));
         }
         if (!in_array($mode, ['apply', 'dry_run'], true)) {
-            throw new InvalidArgumentException("mode must be 'apply' or 'dry_run', got '{$mode}'");
+            throw new InvalidArgumentException(Lang::t('Mode must be "apply" or "dry_run", got "{mode}"', ['mode' => $mode]));
         }
 
         $ctx  = Context::getContext();
@@ -451,7 +452,7 @@ final class BulkEditorService
         if ($originalScope <= 100000) {
             $changing = $this->changingProductIds($productIds, $shop, $lang, $actions);
             if (!$changing) {
-                throw new InvalidArgumentException('Nothing to change — every selected product already matches the requested actions.');
+                throw new InvalidArgumentException(Lang::t('Nothing to change — every selected product already matches the requested actions.'));
             }
             $productIds = $changing;
         }
@@ -486,7 +487,7 @@ final class BulkEditorService
     {
         $batch = $this->masseditRepo->find($idBatch);
         if ($batch === null) {
-            throw new InvalidArgumentException("Batch {$idBatch} not found");
+            throw new InvalidArgumentException(Lang::t('Batch {id} not found', ['id' => $idBatch]));
         }
 
         // Don't resume a batch that was already finalised or cancelled (cancel() sets
@@ -503,7 +504,7 @@ final class BulkEditorService
 
         if (!is_array($snapshot) || empty($snapshot['product_ids']) || !is_array($actionSnapshot) || empty($actionSnapshot['actions'])) {
             $this->masseditRepo->updateStatus($idBatch, 'failed');
-            throw new RuntimeException('Batch snapshot is missing products or actions');
+            throw new RuntimeException(Lang::t('Batch snapshot is missing products or actions'));
         }
 
         $idLang  = (int) ($snapshot['id_lang'] ?? Context::getContext()->language->id);
@@ -563,13 +564,13 @@ final class BulkEditorService
     {
         $batch = $this->masseditRepo->find($idBatch);
         if ($batch === null) {
-            throw new InvalidArgumentException("Batch {$idBatch} not found");
+            throw new InvalidArgumentException(Lang::t('Batch {id} not found', ['id' => $idBatch]));
         }
         if ((string) $batch['status'] === 'undone') {
-            throw new InvalidArgumentException('Batch is already undone');
+            throw new InvalidArgumentException(Lang::t('Batch is already undone'));
         }
         if ((string) ($batch['mode'] ?? 'apply') === 'dry_run') {
-            throw new InvalidArgumentException('Dry-run batches have nothing to undo');
+            throw new InvalidArgumentException(Lang::t('Dry-run batches have nothing to undo'));
         }
 
         $idShop = (int) $batch['id_shop'];
@@ -601,7 +602,7 @@ final class BulkEditorService
                 }
                 $restored++;
             } catch (\Throwable $e) {
-                $errors[] = "Product {$row['id_product']} / {$row['field']}: {$e->getMessage()}";
+                $errors[] = Lang::t('Product {id} / {field}: {message}', ['id' => $row['id_product'], 'field' => $row['field'], 'message' => $e->getMessage()]);
             }
         }
 
@@ -630,11 +631,11 @@ final class BulkEditorService
     {
         $batch = $this->masseditRepo->find($idBatch);
         if ($batch === null) {
-            throw new InvalidArgumentException("Batch {$idBatch} not found");
+            throw new InvalidArgumentException(Lang::t('Batch {id} not found', ['id' => $idBatch]));
         }
         $status = (string) $batch['status'];
         if (!in_array($status, ['pending', 'running'], true)) {
-            throw new InvalidArgumentException("Batch {$idBatch} cannot be cancelled (status: {$status})");
+            throw new InvalidArgumentException(Lang::t('Batch {id} cannot be cancelled (status: {status})', ['id' => $idBatch, 'status' => $status]));
         }
         // Use 'partial' if any products were already changed, else 'failed'.
         $finalStatus = (int) $batch['products_changed'] > 0 ? 'partial' : 'failed';
@@ -650,16 +651,16 @@ final class BulkEditorService
     {
         $batch = $this->masseditRepo->find($idBatch);
         if ($batch === null) {
-            throw new InvalidArgumentException("Batch {$idBatch} not found");
+            throw new InvalidArgumentException(Lang::t('Batch {id} not found', ['id' => $idBatch]));
         }
         if ((string) $batch['status'] === 'undone') {
-            throw new InvalidArgumentException('An undone batch cannot be resumed');
+            throw new InvalidArgumentException(Lang::t('An undone batch cannot be resumed'));
         }
         $snapshot = $batch['segment_snapshot'] ? json_decode((string) $batch['segment_snapshot'], true) : [];
         $total = is_array($snapshot) ? count($snapshot['product_ids'] ?? []) : 0;
         $done  = (int) ($batch['processed_offset'] ?? 0);
         if ($done >= $total) {
-            throw new InvalidArgumentException('Nothing left to resume');
+            throw new InvalidArgumentException(Lang::t('Nothing left to resume'));
         }
         $this->masseditRepo->updateStatus($idBatch, 'running');
         return $this->getStatus($idBatch);
@@ -669,7 +670,7 @@ final class BulkEditorService
     {
         $batch = $this->masseditRepo->find($idBatch);
         if ($batch === null) {
-            throw new InvalidArgumentException("Batch {$idBatch} not found");
+            throw new InvalidArgumentException(Lang::t('Batch {id} not found', ['id' => $idBatch]));
         }
         $snapshot = $batch['segment_snapshot'] ? json_decode((string) $batch['segment_snapshot'], true) : [];
         $action   = $batch['action_snapshot']  ? json_decode((string) $batch['action_snapshot'],  true) : [];
@@ -1063,7 +1064,7 @@ final class BulkEditorService
     {
         $promptId = (int) ($action['prompt_id'] ?? 0);
         if ($promptId <= 0) {
-            throw new RuntimeException("ai_generate on field '{$fieldId}' requires prompt_id");
+            throw new RuntimeException(Lang::t('AI generation on field "{field}" requires a prompt', ['field' => $fieldId]));
         }
         $versionId = isset($action['prompt_version_id']) && $action['prompt_version_id'] !== null
             ? (int) $action['prompt_version_id']

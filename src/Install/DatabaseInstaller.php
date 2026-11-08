@@ -16,6 +16,7 @@ namespace SmartBulk\Install;
 
 use Db;
 use RuntimeException;
+use SmartBulk\Service\Lang;
 
 final class DatabaseInstaller
 {
@@ -39,7 +40,7 @@ final class DatabaseInstaller
     private function runSqlFile(string $path): bool
     {
         if (!is_file($path)) {
-            throw new RuntimeException("SmartBulk SQL file missing: {$path}");
+            throw new RuntimeException(Lang::t('SmartBulk SQL file missing: {path}', ['path' => $path]));
         }
 
         $sql = (string) file_get_contents($path);
@@ -60,7 +61,7 @@ final class DatabaseInstaller
         foreach ($statements as $statement) {
             if (!Db::getInstance()->execute($statement)) {
                 throw new RuntimeException(
-                    'SmartBulk SQL failed: ' . Db::getInstance()->getMsgError()
+                    Lang::t('SmartBulk SQL failed: {message}', ['message' => Db::getInstance()->getMsgError()])
                 );
             }
         }

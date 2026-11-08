@@ -7,6 +7,76 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [2.0.1] — 2026-10-26
+
+### Changed
+- Module author shown in the Module Manager is now "marcingajewski.pl (fork: Artur67pl)":
+  the original author stays first (AFL-3.0 attribution), followed by the fork maintainer.
+
+## [2.0.0] — 2026-10-26
+
+First release of the [Artur67pl/smartbulk](https://github.com/Artur67pl/smartbulk) fork,
+based on upstream [GajewskiMarcin/smartbulk](https://github.com/GajewskiMarcin/smartbulk) 1.0.6.
+The technical module name stays `smartbulk`, so it installs as an upgrade over 1.0.6;
+no database changes — saved prompts, segments, templates and settings are kept.
+
+### Added
+- **Claude generation-5 models:** Haiku 5.5, Sonnet 5, Sonnet 5.5 and Opus 5.5 in the model
+  list, with pricing (also Opus 5).
+- **Effort and thinking controls in the prompt editor** (Claude models that support them).
+  Stored as `params.effort` / `params.thinking` in the prompt version JSON — no schema change.
+  The editor offers only what the selected model accepts: temperature is greyed out where the
+  model rejects it, the Effort list appears only on models with `output_config.effort`, and
+  thinking can't be switched off together with `xhigh`/`max`. A hint/warning on Max tokens
+  reminds that thinking tokens count toward the limit.
+- `tests/unit/ClaudeRequestBodyTest.php` — plain-PHP unit tests for the Claude request body
+  (`php tests/unit/ClaudeRequestBodyTest.php`, no PrestaShop needed).
+
+### Changed
+- Pricing corrected for Haiku 4.5 and Opus 4.7.
+- The SPA's API calls take the first URL segment as the admin folder instead of requiring an
+  "admin" prefix, so custom back-office folder names (e.g. `/cmd775/`) no longer get 404s.
+- The Support page links to this fork's GitHub repository.
+- Per-model request rules live in one table, `ClaudeModelCapabilities` (mirrored in
+  `views/js/app/src/lib/prompts.ts`), replacing the sampling regex in `ClaudeProvider`.
+  Unknown model ids get no temperature/top_p, effort or thinking fields.
+- Claude Opus 4.7 no longer receives temperature/top_p: per Anthropic's migration guide the
+  model rejects them with a 400 error.
+- Saving a new prompt version keeps params the editor doesn't manage (`target_field`,
+  `target_lang`, `top_p`, …) instead of dropping them.
+
+### Fixed
+- **Empty, truncated or refused AI output is no longer applied.** A reply with no text,
+  cut off at Max tokens (`max_tokens` / OpenAI `length`) or refused (`refusal` / OpenAI
+  `content_filter`) is stored as a `failed` run with a readable error instead of a `pending`
+  one. Before, accepting it (or the Bulk Editor's `ai_generate` action, which writes
+  directly) put an empty or half-finished value into the product field. With thinking on,
+  the whole Max tokens limit can go to thinking and leave no text.
+- Accepting a pending run with empty output (queued before this fix) is refused.
+- These error messages are translated (Polish in `translations/pl.php`) and shown in the
+  back-office employee's language.
+
+### Translations
+- **The whole module is translatable, with Polish translations.** Previously many texts
+  stayed English in a Polish back office:
+  - React app: hard-coded labels, buttons, toasts and hints (AI Assistant, action builder,
+    Bulk Editor batch view, Dashboard, History, Health, multi-select, password field), and
+    option lists shown raw (condition operators, content gaps, field groups, bulk operators,
+    task types, model names, weekdays). Keys used by the code but missing from the
+    dictionary (e.g. `common.saving`, `ai.bulk_*`) were added.
+  - PHP: every error message thrown by services and API controllers, history summaries,
+    preset segments, field hints/warnings, product-grid actions and columns, and the
+    Product Health panel on the product page.
+- New `SmartBulk\Service\Lang::t()` translates PHP-side messages through the module's
+  legacy translations with `{placeholder}` substitution.
+- SPA dictionary values are HTML-decoded before reaching React (`$this->l()` escapes them,
+  which could show `&quot;` / `&lt;` in the UI).
+- `tests/unit/TranslationsTest.php` checks that every translated PHP string has a Polish
+  entry with the same placeholders and every `t('key')` used by the app exists in the
+  dictionary.
+- The daily AI budget now counts failed runs too: billed-but-unusable replies carry their
+  real cost (provider errors are still stored with cost 0).
+
 ## [1.0.6] — 2026-08-31
 
 ### Changed

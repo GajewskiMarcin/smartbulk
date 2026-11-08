@@ -19,9 +19,14 @@ final class Pricing
 {
     /** @var array<string,array{in:float,out:float}> USD per 1M tokens */
     private const TABLE = [
-        'claude-haiku-4-5'  => ['in' => 0.80,  'out' => 4.00],
+        'claude-haiku-4-5'  => ['in' => 1.00,  'out' => 5.00],
+        'claude-haiku-5-5'  => ['in' => 0.10,  'out' => 0.50],
         'claude-sonnet-4-6' => ['in' => 3.00,  'out' => 15.00],
-        'claude-opus-4-7'   => ['in' => 15.00, 'out' => 75.00],
+        'claude-opus-4-7'   => ['in' => 5.00,  'out' => 25.00],
+        'claude-sonnet-5'   => ['in' => 2.00,  'out' => 10.00],
+        'claude-sonnet-5-5' => ['in' => 2.00,  'out' => 10.00],
+        'claude-opus-5'     => ['in' => 5.00,  'out' => 25.00],
+        'claude-opus-5-5'   => ['in' => 4.00,  'out' => 20.00],
         'gpt-4o-mini'       => ['in' => 0.15,  'out' => 0.60],
         'gpt-4o'            => ['in' => 2.50,  'out' => 10.00],
     ];

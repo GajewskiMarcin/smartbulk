@@ -1,0 +1,83 @@
+# Builds the installable module zip and publishes a GitHub release when a
+# version tag is pushed (e.g. `git tag v2.0.0 && git push origin v2.0.0`), or
+# when run by hand (Actions → Release → Run workflow): then it releases the
+# version in smartbulk.php from the chosen branch and creates the v<version> tag.
+#
+# The zip contains a single `smartbulk/` folder (what PrestaShop's
+# "Upload a module" expects), built with `git archive` from the tagged commit;
+# files marked export-ignore in .gitattributes are left out.
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check tag matches module version
+        run: |
+          PHP_VERSION=$(sed -n "s/.*public const VERSION = '\([^']*\)'.*/\1/p" smartbulk.php)
+          XML_VERSION=$(sed -n 's/.*<version><!\[CDATA\[\([^]]*\)\]\]><\/version>.*/\1/p' config.xml)
+          if [ "$GITHUB_EVENT_NAME" = "workflow_dispatch" ]; then
+            TAG="$PHP_VERSION"
+            if git ls-remote --exit-code --tags origin "refs/tags/v$TAG" >/dev/null; then
+              echo "::error::v$TAG is already released — bump SmartBulk::VERSION and config.xml first"
+              exit 1
+            fi
+          else
+            TAG="${GITHUB_REF_NAME#v}"
+          fi
+          echo "tag=$TAG smartbulk.php=$PHP_VERSION config.xml=$XML_VERSION"
+          if [ "$TAG" != "$PHP_VERSION" ] || [ "$TAG" != "$XML_VERSION" ]; then
+            echo "::error::Tag v$TAG does not match SmartBulk::VERSION ($PHP_VERSION) / config.xml ($XML_VERSION)"
+            exit 1
+          fi
+          echo "VERSION=$TAG" >> "$GITHUB_ENV"
+
+      - name: Unit tests
+        run: |
+          php --version
+          for f in tests/unit/*.php; do php "$f"; done
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: views/js/app/package-lock.json
+
+      - name: Check committed dist matches the source
+        working-directory: views/js/app
+        run: |
+          npm ci
+          npm run build
+          git diff --exit-code -- dist || { echo "::error::views/js/app/dist is out of date — run npm run build and commit"; exit 1; }
+
+      - name: Build module zip
+        run: |
+          git archive --format=zip --prefix=smartbulk/ -o "smartbulk-$VERSION.zip" HEAD
+          unzip -l "smartbulk-$VERSION.zip" | tail -1
+
+      - name: Release notes from CHANGELOG
+        run: |
+          awk -v v="$VERSION" '
+            $0 ~ "^## \\[" v "\\]" { on = 1; next }
+            on && /^## \[/ { exit }
+            on { print }
+          ' CHANGELOG.md > release-notes.md
+          test -s release-notes.md || echo "SmartBulk $VERSION" > release-notes.md
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ env.VERSION }}
+          target_commitish: ${{ github.sha }}
+          name: SmartBulk ${{ env.VERSION }}
+          body_path: release-notes.md
+          files: smartbulk-${{ env.VERSION }}.zip

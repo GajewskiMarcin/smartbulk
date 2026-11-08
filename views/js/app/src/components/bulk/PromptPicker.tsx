@@ -60,7 +60,7 @@ export default function PromptPicker({ fieldId, promptId, promptVersionId, onCha
       >
         <option value="">{t('prompt_picker.select_prompt', '— select prompt —')}</option>
         {suggested && matched.length > 0 && (
-          <optgroup label={t2('prompt_picker.suggested', 'Suggested: {label}', { label: TASK_TYPE_LABELS[suggested] })}>
+          <optgroup label={t2('prompt_picker.suggested', 'Suggested: {label}', { label: t('task.' + suggested, TASK_TYPE_LABELS[suggested]) })}>
             {matched.map((p) => (
               <option key={p.id_prompt} value={p.id_prompt}>
                 {p.name}{p.current_model ? ` (${p.current_model})` : ''}
@@ -72,7 +72,7 @@ export default function PromptPicker({ fieldId, promptId, promptVersionId, onCha
           <optgroup label={matched.length > 0 ? t('prompt_picker.other_prompts', 'Other prompts') : t('prompt_picker.all_prompts', 'All prompts')}>
             {others.map((p) => (
               <option key={p.id_prompt} value={p.id_prompt}>
-                [{TASK_TYPE_LABELS[p.task_type]}] {p.name}
+                [{t('task.' + p.task_type, TASK_TYPE_LABELS[p.task_type])}] {p.name}
               </option>
             ))}
           </optgroup>

@@ -41,7 +41,7 @@ export default function ActionSummarySidebar({ fields, actions, globalLang, onSc
             >
               <div className="text-[12px] font-semibold text-slate-900 truncate">{def.label}</div>
               <div className="text-[11px] text-muted-foreground truncate">
-                {operatorLabel(a.operator)}
+                {t(`bulk.op.${a.operator}`, operatorLabel(a.operator))}
                 {describeValue(a)}
                 {def.lang && describeLanguage(a.id_lang, globalLang)}
               </div>

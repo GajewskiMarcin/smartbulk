@@ -13,6 +13,7 @@ namespace SmartBulk\Controller\Api;
 
 use SmartBulk\Controller\CompatAdminController;
 use SmartBulk\Service\Config\ConfigPortabilityService;
+use SmartBulk\Service\Lang;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 
@@ -34,7 +35,7 @@ final class ConfigController extends CompatAdminController
         $payload = $this->jsonBody($request);
         $config = is_array($payload['config'] ?? null) ? $payload['config'] : null;
         if ($config === null) {
-            return new JsonResponse(['ok' => false, 'error' => 'Missing "config" payload'], 422);
+            return new JsonResponse(['ok' => false, 'error' => Lang::t('Missing "config" payload')], 422);
         }
         $options = is_array($payload['options'] ?? null) ? $payload['options'] : [];
         try {

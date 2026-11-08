@@ -15,6 +15,7 @@ declare(strict_types=1);
 namespace SmartBulk\Service\Bulk;
 
 use InvalidArgumentException;
+use SmartBulk\Service\Lang;
 
 final class ActionApplier
 {
@@ -76,7 +77,7 @@ final class ActionApplier
             case 'enum':
                 return ['value' => (string) ($action['value'] ?? $oldValue), 'flags' => []];
         }
-        throw new InvalidArgumentException("Unknown field type '{$fieldType}'");
+        throw new InvalidArgumentException(Lang::t('Unknown field type "{type}"', ['type' => $fieldType]));
     }
 
     /**
@@ -123,7 +124,7 @@ final class ActionApplier
                 return str_replace($find, $replace, $old);
             }
         }
-        throw new InvalidArgumentException("Unsupported text operator '{$operator}'");
+        throw new InvalidArgumentException(Lang::t('Unsupported text operator "{op}"', ['op' => $operator]));
     }
 
     /** @param array<string,mixed> $action */
@@ -135,7 +136,7 @@ final class ActionApplier
         if ($operator === 'math') {
             return $this->applyMath($old, (string) ($action['math_op'] ?? '+'), (float) ($action['math_value'] ?? 0));
         }
-        throw new InvalidArgumentException("Unsupported numeric operator '{$operator}'");
+        throw new InvalidArgumentException(Lang::t('Unsupported numeric operator "{op}"', ['op' => $operator]));
     }
 
     /** @param array<string,mixed> $action */
@@ -148,7 +149,7 @@ final class ActionApplier
             $result = $this->applyMath((float) $old, (string) ($action['math_op'] ?? '+'), (float) ($action['math_value'] ?? 0));
             return (int) round($result);
         }
-        throw new InvalidArgumentException("Unsupported int operator '{$operator}'");
+        throw new InvalidArgumentException(Lang::t('Unsupported integer operator "{op}"', ['op' => $operator]));
     }
 
     /** @param array<string,mixed> $action */
@@ -157,7 +158,7 @@ final class ActionApplier
         if ($operator === 'set') {
             return ((bool) ($action['value'] ?? false)) ? 1 : 0;
         }
-        throw new InvalidArgumentException("Unsupported bool operator '{$operator}'");
+        throw new InvalidArgumentException(Lang::t('Unsupported yes/no operator "{op}"', ['op' => $operator]));
     }
 
     private function applyMath(float $old, string $op, float $arg): float
@@ -170,7 +171,7 @@ final class ActionApplier
             case '+%': return round($old * (1 + $arg / 100), 6);
             case '-%': return round($old * (1 - $arg / 100), 6);
         }
-        throw new InvalidArgumentException("Unsupported math op '{$op}'");
+        throw new InvalidArgumentException(Lang::t('Unsupported math operation "{op}"', ['op' => $op]));
     }
 
     /** @return mixed */

@@ -1,6 +1,7 @@
 // SmartBulk — Dashboard API client + types
 
 import { api } from './api';
+import { t } from './i18n';
 import type { BatchSummary } from './history';
 import type { Severity, ProblemGroup } from './health';
 
@@ -65,7 +66,7 @@ export const dashboardApi = {
     api
       .get<{ ok: boolean; data: DashboardData; error?: string }>(BASE)
       .then((r) => {
-        if (!r.ok || !r.data) throw new Error(r.error || 'Failed to load dashboard');
+        if (!r.ok || !r.data) throw new Error(r.error || t('err.failed_to_load_dashboard', 'Failed to load dashboard'));
         return r.data;
       }),
 };

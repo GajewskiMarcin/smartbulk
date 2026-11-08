@@ -1,6 +1,7 @@
 // SmartBulk — Bulk Editor API client + types
 
 import { api } from './api';
+import { t } from './i18n';
 
 export type FieldType = 'text' | 'numeric' | 'int' | 'bool' | 'enum' | 'feature' | 'tags';
 export type Operator =
@@ -174,7 +175,7 @@ export const bulkApi = {
 
   saveTemplate: (input: { name: string; description?: string; actions: BulkAction[] }) =>
     api.post<{ ok: boolean; id: number; error?: string }>(`${BASE}/templates`, input).then((r) => {
-      if (!r.ok) throw new Error(r.error || 'Save template failed');
+      if (!r.ok) throw new Error(r.error || t('err.save_template_failed', 'Save template failed'));
       return r.id;
     }),
 
@@ -197,7 +198,7 @@ export const bulkApi = {
         error?: string;
       }>(`${BASE}/preview`, input)
       .then((r): PreviewResponse => {
-        if (!r.ok) throw new Error(r.error || 'Preview failed');
+        if (!r.ok) throw new Error(r.error || t('err.preview_failed', 'Preview failed'));
         return {
           summary: r.summary,
           diffs: r.diffs,
@@ -217,7 +218,7 @@ export const bulkApi = {
     api
       .post<{ ok: boolean; batch: BulkBatchStatus; error?: string }>(`${BASE}/batch`, input)
       .then((r) => {
-        if (!r.ok || !r.batch) throw new Error(r.error || 'Could not create batch');
+        if (!r.ok || !r.batch) throw new Error(r.error || t('err.could_not_create_batch', 'Could not create batch'));
         return r.batch;
       }),
 
@@ -227,7 +228,7 @@ export const bulkApi = {
         `${BASE}/batch/${id}${includeItems ? '?include_items=1' : ''}`
       )
       .then((r) => {
-        if (!r.ok || !r.batch) throw new Error(r.error || 'Could not fetch batch');
+        if (!r.ok || !r.batch) throw new Error(r.error || t('err.could_not_fetch_batch', 'Could not fetch batch'));
         return r.batch;
       }),
 
@@ -235,7 +236,7 @@ export const bulkApi = {
     api
       .post<{ ok: boolean; batch: BulkBatchStatus; error?: string }>(`${BASE}/batch/${id}/process-next?limit=${limit}`, {})
       .then((r) => {
-        if (!r.ok || !r.batch) throw new Error(r.error || 'Process failed');
+        if (!r.ok || !r.batch) throw new Error(r.error || t('err.process_failed', 'Process failed'));
         return r.batch;
       }),
 
@@ -246,7 +247,7 @@ export const bulkApi = {
         {}
       )
       .then((r) => {
-        if (!r.ok || !r.result) throw new Error(r.error || 'Undo failed');
+        if (!r.ok || !r.result) throw new Error(r.error || t('err.undo_failed', 'Undo failed'));
         return r.result;
       }),
 
@@ -254,7 +255,7 @@ export const bulkApi = {
     api
       .post<{ ok: boolean; batch: BulkBatchStatus; error?: string }>(`${BASE}/batch/${id}/cancel`, {})
       .then((r) => {
-        if (!r.ok || !r.batch) throw new Error(r.error || 'Cancel failed');
+        if (!r.ok || !r.batch) throw new Error(r.error || t('err.cancel_failed', 'Cancel failed'));
         return r.batch;
       }),
 
@@ -262,7 +263,7 @@ export const bulkApi = {
     api
       .post<{ ok: boolean; batch: BulkBatchStatus; error?: string }>(`${BASE}/batch/${id}/resume`, {})
       .then((r) => {
-        if (!r.ok || !r.batch) throw new Error(r.error || 'Resume failed');
+        if (!r.ok || !r.batch) throw new Error(r.error || t('err.resume_failed', 'Resume failed'));
         return r.batch;
       }),
 };

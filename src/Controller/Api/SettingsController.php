@@ -15,6 +15,7 @@ declare(strict_types=1);
 namespace SmartBulk\Controller\Api;
 
 use SmartBulk\Controller\CompatAdminController;
+use SmartBulk\Service\Lang;
 use SmartBulk\Service\SettingsService;
 use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
@@ -32,7 +33,7 @@ final class SettingsController extends CompatAdminController
         $this->assertAccess('update');
         $payload = json_decode((string) $request->getContent(), true) ?: [];
         if (!is_array($payload)) {
-            return new JsonResponse(['ok' => false, 'error' => 'Invalid JSON'], 400);
+            return new JsonResponse(['ok' => false, 'error' => Lang::t('Invalid JSON')], 400);
         }
 
         try {

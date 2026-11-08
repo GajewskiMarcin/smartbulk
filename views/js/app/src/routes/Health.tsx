@@ -36,20 +36,20 @@ export default function Health() {
     try {
       const ids = explicitIds ?? await healthApi.productIds(problem.id, { limit: 5000 });
       if (ids.length === 0) {
-        toast.show('No matching products found', 'info');
+        toast.show(t('health.no_matching_found', 'No matching products found'), 'info');
         return;
       }
       navigate('/bulk-editor', {
         state: {
           handoff: {
             productIds: ids,
-            label: `${problem.label} (${ids.length.toLocaleString()})`,
+            label: `${t('issue.' + problem.id, problem.label)} (${ids.length.toLocaleString()})`,
             source: 'content-health',
           },
         },
       });
     } catch (e) {
-      toast.show((e as Error).message || 'Could not open in Bulk Editor', 'error');
+      toast.show((e as Error).message || t('health.open_bulk_failed', 'Could not open in Bulk Editor'), 'error');
     } finally {
       setLoadingProblem(null);
     }
@@ -380,10 +380,10 @@ function ProblemDrillDown({
                         <input type="checkbox" checked={isSel} onChange={() => toggleOne(it.id_product)} onClick={(e) => e.stopPropagation()} />
                       </td>
                       <td className="px-2 py-1.5 text-muted-foreground">#{it.id_product}</td>
-                      <td className="px-2 py-1.5 font-medium truncate max-w-[320px]">{it.name || <em className="text-muted-foreground">(no name)</em>}</td>
+                      <td className="px-2 py-1.5 font-medium truncate max-w-[320px]">{it.name || <em className="text-muted-foreground">{t('common.no_name', '(no name)')}</em>}</td>
                       <td className="px-2 py-1.5 text-muted-foreground truncate">{it.reference || '—'}</td>
                       <td className="px-2 py-1.5 text-muted-foreground truncate max-w-[360px]">
-                        {it.preview || <em className="text-red-700">(empty)</em>}
+                        {it.preview || <em className="text-red-700">{t('common.empty', '(empty)')}</em>}
                       </td>
                     </tr>
                   );

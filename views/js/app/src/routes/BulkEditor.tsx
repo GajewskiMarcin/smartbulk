@@ -86,7 +86,7 @@ export default function BulkEditor() {
 
   const previewMutation = useMutation({
     mutationFn: () => {
-      if (actions.length === 0) throw new Error('Add at least one action');
+      if (actions.length === 0) throw new Error(t('bulk.add_action_first', 'Add at least one action'));
       const payload = {
         actions,
         id_lang: globalLang === 'all' ? undefined : globalLang,
@@ -100,7 +100,7 @@ export default function BulkEditor() {
       setPreview(res);
       setStep(3);
     },
-    onError: (e: Error) => toast.show(e.message || 'Preview failed', 'error'),
+    onError: (e: Error) => toast.show(e.message || t('err.preview_failed', 'Preview failed'), 'error'),
   });
 
   const createBatchMutation = useMutation({
@@ -116,9 +116,9 @@ export default function BulkEditor() {
     onSuccess: (batch) => {
       setActiveBatchId(batch.id_batch);
       setStep(4);
-      toast.show(`Batch #${batch.id_batch} started`, 'info');
+      toast.show(t2('bulk.toast_batch_started', 'Batch #{id} started', { id: batch.id_batch }), 'info');
     },
-    onError: (e: Error) => toast.show(e.message || 'Could not start batch', 'error'),
+    onError: (e: Error) => toast.show(e.message || t('ai.toast_batch_start_failed', 'Could not start batch'), 'error'),
   });
 
   if (activeBatchId !== null) {
@@ -164,7 +164,7 @@ export default function BulkEditor() {
       {step === 1 && (
         <>
           {catalogQuery.isLoading && (
-            <Card><div className="text-muted-foreground">Loading field catalog…</div></Card>
+            <Card><div className="text-muted-foreground">{t('bulk.loading_catalog', 'Loading field catalog…')}</div></Card>
           )}
           {catalogQuery.data && (
             <Step1ConditionBuilder
@@ -201,7 +201,7 @@ export default function BulkEditor() {
               subtitle={t('bulk.section_actions_subtitle', 'Add one entry per field. Empty value → skipped.')}
             />
             <GlobalLanguageTabs value={globalLang} onChange={setGlobalLang} className="mb-3" />
-            {fieldsQuery.isLoading && <div className="text-muted-foreground text-[13px]">Loading fields…</div>}
+            {fieldsQuery.isLoading && <div className="text-muted-foreground text-[13px]">{t('bulk.loading_fields', 'Loading fields…')}</div>}
             {fieldsQuery.data && (
               <ActionBuilder fields={fieldsQuery.data} value={actions} onChange={setActions} globalLang={globalLang} />
             )}
@@ -245,7 +245,7 @@ export default function BulkEditor() {
           onClick={() => setStep(Math.max(1, step - 1) as Step)}
           disabled={step === 1 || previewMutation.isPending || createBatchMutation.isPending}
         >
-          ← Back
+          {t('bulk.back', '← Back')}
         </Button>
 
         <div className="text-[12px] text-muted-foreground">
@@ -485,17 +485,17 @@ function BatchRunner({ idBatch, onExit }: { idBatch: number; onExit: () => void 
   const processMutation = useMutation({
     mutationFn: () => bulkApi.processNext(idBatch, chunkSize),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['bulk', 'batch', idBatch] }),
-    onError: (e: Error) => toast.show(e.message || 'Processing failed', 'error'),
+    onError: (e: Error) => toast.show(e.message || t('ai.toast_processing_failed', 'Processing failed'), 'error'),
   });
 
   const cancelMutation = useMutation({
     mutationFn: () => bulkApi.cancel(idBatch),
     onSuccess: () => {
-      toast.show('Batch stopped', 'info');
+      toast.show(t('bulk.toast_stopped', 'Batch stopped'), 'info');
       setAutoProcess(false);
       qc.invalidateQueries({ queryKey: ['bulk', 'batch', idBatch] });
     },
-    onError: (e: Error) => toast.show(e.message || 'Cancel failed', 'error'),
+    onError: (e: Error) => toast.show(e.message || t('err.cancel_failed', 'Cancel failed'), 'error'),
   });
 
   const resumeMutation = useMutation({
@@ -504,7 +504,7 @@ function BatchRunner({ idBatch, onExit }: { idBatch: number; onExit: () => void 
       setAutoProcess(true);
       qc.invalidateQueries({ queryKey: ['bulk', 'batch', idBatch] });
     },
-    onError: (e: Error) => toast.show(e.message || 'Resume failed', 'error'),
+    onError: (e: Error) => toast.show(e.message || t('err.resume_failed', 'Resume failed'), 'error'),
   });
 
   useEffect(() => {
@@ -517,7 +517,7 @@ function BatchRunner({ idBatch, onExit }: { idBatch: number; onExit: () => void 
   }, [autoProcess, batchQuery.data, processMutation]);
 
   const batch = batchQuery.data;
-  if (!batch) return <div className="text-muted-foreground">Loading batch…</div>;
+  if (!batch) return <div className="text-muted-foreground">{t('bulk.loading_batch', 'Loading batch…')}</div>;
 
   const progressPct = batch.total === 0 ? 0 : Math.round((batch.done / batch.total) * 100);
   const running = (batch.status === 'pending' || batch.status === 'running') && batch.remaining > 0;
@@ -537,7 +537,7 @@ function BatchRunner({ idBatch, onExit }: { idBatch: number; onExit: () => void 
     setUndoing(true);
     try {
       const res = await bulkApi.undo(idBatch);
-      toast.show(`Restored ${res.restored} changes`, 'success');
+      toast.show(t2('toast.restored_n', 'Restored {n} changes', { n: res.restored }), 'success');
       await qc.invalidateQueries({ queryKey: ['bulk', 'batch', idBatch] });
     } catch (e) {
       toast.show((e as Error).message, 'error');
@@ -560,8 +560,8 @@ function BatchRunner({ idBatch, onExit }: { idBatch: number; onExit: () => void 
   return (
     <>
       <PageHead
-        title={`Bulk Batch #${batch.id_batch}`}
-        subtitle={<>{batch.products_changed} changed · {batch.products_failed} failed · {batch.total} total</>}
+        title={t2('bulk.batch_title', 'Bulk Batch #{id}', { id: batch.id_batch })}
+        subtitle={t2('bulk.batch_counts', '{changed} changed · {failed} failed · {total} total', { changed: batch.products_changed, failed: batch.products_failed, total: batch.total })}
         actions={
           <>
             {running && (
@@ -618,18 +618,18 @@ function BatchRunner({ idBatch, onExit }: { idBatch: number; onExit: () => void 
       </Card>
 
       <Card>
-        <SectionHeader title="Processed items" subtitle="Recent products modified by this batch" />
+        <SectionHeader title={t('bulk.processed_items', 'Processed items')} subtitle={t('bulk.processed_items_sub', 'Recent products modified by this batch')} />
         {!batch.items || batch.items.length === 0 ? (
-          <div className="text-muted-foreground text-[13px]">No items processed yet.</div>
+          <div className="text-muted-foreground text-[13px]">{t('bulk.no_items', 'No items processed yet.')}</div>
         ) : (
           <div className="border border-border rounded-md overflow-hidden">
             <table className="w-full text-[13px]">
               <thead>
                 <tr className="text-left text-[11px] uppercase tracking-wide text-muted-foreground bg-muted">
-                  <th className="px-3 py-2 font-semibold w-24">Product</th>
-                  <th className="px-3 py-2 font-semibold">Field changes</th>
-                  <th className="px-3 py-2 font-semibold w-28">Status</th>
-                  <th className="px-3 py-2 font-semibold w-36">When</th>
+                  <th className="px-3 py-2 font-semibold w-24">{t('bulk.col_product', 'Product')}</th>
+                  <th className="px-3 py-2 font-semibold">{t('bulk.col_field_changes', 'Field changes')}</th>
+                  <th className="px-3 py-2 font-semibold w-28">{t('common.status', 'Status')}</th>
+                  <th className="px-3 py-2 font-semibold w-36">{t('common.when', 'When')}</th>
                 </tr>
               </thead>
               <tbody>
@@ -639,9 +639,9 @@ function BatchRunner({ idBatch, onExit }: { idBatch: number; onExit: () => void 
                     <td className="px-3 py-2">{it.change_count}</td>
                     <td className="px-3 py-2">
                       {it.failed > 0 ? (
-                        <Badge variant="destructive">{it.failed} failed</Badge>
+                        <Badge variant="destructive">{t2('bulk.n_failed', '{n} failed', { n: it.failed })}</Badge>
                       ) : (
-                        <Badge variant="success">✓ {it.changed} changed</Badge>
+                        <Badge variant="success">{t2('bulk.n_changed', '✓ {n} changed', { n: it.changed })}</Badge>
                       )}
                     </td>
                     <td className="px-3 py-2 text-muted-foreground text-[12px]">{it.last_change}</td>
@@ -657,12 +657,12 @@ function BatchRunner({ idBatch, onExit }: { idBatch: number; onExit: () => void 
 }
 
 function BatchStatusBadge({ status }: { status: BulkBatchStatus['status'] }) {
-  if (status === 'running') return <Badge variant="primary">running</Badge>;
-  if (status === 'success') return <Badge variant="success">✓ done</Badge>;
-  if (status === 'partial') return <Badge variant="warning">partial</Badge>;
-  if (status === 'failed')  return <Badge variant="destructive">failed</Badge>;
-  if (status === 'undone')  return <Badge variant="muted">undone</Badge>;
-  return <Badge variant="muted">{status}</Badge>;
+  if (status === 'running') return <Badge variant="primary">{t('status.running', 'running')}</Badge>;
+  if (status === 'success') return <Badge variant="success">✓ {t('status.done', 'done')}</Badge>;
+  if (status === 'partial') return <Badge variant="warning">{t('status.partial', 'partial')}</Badge>;
+  if (status === 'failed')  return <Badge variant="destructive">{t('status.failed', 'failed')}</Badge>;
+  if (status === 'undone')  return <Badge variant="muted">{t('status.undone', 'undone')}</Badge>;
+  return <Badge variant="muted">{t('status.' + status, status)}</Badge>;
 }
 
 // =========================================================================
@@ -684,11 +684,11 @@ function SegmentBar({ tree, onLoadTree }: { tree: TreeSpec; onLoadTree: (t: Tree
   const createMutation = useMutation({
     mutationFn: (n: string) => segmentsApi.create({ name: n, conditions: tree as unknown }),
     onSuccess: (s) => {
-      toast.show(`Segment "${s.name}" saved`, 'success');
+      toast.show(t2('bulk.toast_segment_saved', 'Segment "{name}" saved', { name: s.name }), 'success');
       qc.invalidateQueries({ queryKey: ['segments', 'list'] });
       setMode('idle'); setName('');
     },
-    onError: (e: Error) => toast.show(e.message || 'Could not save segment', 'error'),
+    onError: (e: Error) => toast.show(e.message || t('bulk.toast_segment_save_failed', 'Could not save segment'), 'error'),
   });
 
   const hasConditions = tree.conditions.length > 0;
@@ -697,7 +697,7 @@ function SegmentBar({ tree, onLoadTree }: { tree: TreeSpec; onLoadTree: (t: Tree
     return (
       <div className="flex items-center gap-2">
         <Input
-          placeholder="Segment name"
+          placeholder={t('bulk.segment_name', 'Segment name')}
           value={name}
           onChange={(e) => setName(e.target.value)}
           autoFocus
@@ -712,9 +712,9 @@ function SegmentBar({ tree, onLoadTree }: { tree: TreeSpec; onLoadTree: (t: Tree
           onClick={() => createMutation.mutate(name.trim())}
           disabled={!name.trim() || createMutation.isPending}
         >
-          {createMutation.isPending ? 'Saving…' : 'Save'}
+          {createMutation.isPending ? t('common.saving', 'Saving…') : t('common.save', 'Save')}
         </Button>
-        <Button variant="ghost" onClick={() => { setMode('idle'); setName(''); }}>Cancel</Button>
+        <Button variant="ghost" onClick={() => { setMode('idle'); setName(''); }}>{t('common.cancel', 'Cancel')}</Button>
       </div>
     );
   }
@@ -723,24 +723,24 @@ function SegmentBar({ tree, onLoadTree }: { tree: TreeSpec; onLoadTree: (t: Tree
     const treeSegments = (listQuery.data ?? []).filter((s) => isTreeSegment(s.conditions));
     return (
       <div className="relative">
-        <Button onClick={() => setMode('idle')}>Close ▴</Button>
+        <Button onClick={() => setMode('idle')}>{t('bulk.close_up', 'Close ▴')}</Button>
         <div className="absolute right-0 top-[calc(100%+4px)] z-20 bg-white border border-border rounded-md shadow-lg w-[320px] max-h-[360px] overflow-hidden flex flex-col">
           <div className="px-3 py-2 border-b border-border bg-muted/40">
-            <div className="text-[12px] font-semibold">Load saved segment</div>
-            <div className="text-[10px] text-muted-foreground">Only nested AND/OR segments (Bulk Editor format) are listed here.</div>
+            <div className="text-[12px] font-semibold">{t('bulk.load_saved_title', 'Load saved segment')}</div>
+            <div className="text-[10px] text-muted-foreground">{t('bulk.load_saved_hint', 'Only nested AND/OR segments (Bulk Editor format) are listed here.')}</div>
           </div>
           <div className="overflow-y-auto flex-1">
-            {listQuery.isLoading && <div className="px-3 py-4 text-[12px] text-muted-foreground">Loading…</div>}
+            {listQuery.isLoading && <div className="px-3 py-4 text-[12px] text-muted-foreground">{t('common.loading', 'Loading…')}</div>}
             {!listQuery.isLoading && treeSegments.length === 0 && (
               <div className="px-3 py-4 text-[12px] text-muted-foreground text-center">
-                No saved Bulk-Editor segments yet.
+                {t('bulk.no_saved_segments', 'No saved Bulk-Editor segments yet.')}
               </div>
             )}
             {treeSegments.map((s) => (
               <button
                 key={s.id_segment}
                 type="button"
-                onClick={() => { onLoadTree(s.conditions as TreeSpec); setMode('idle'); toast.show(`Loaded "${s.name}"`, 'info'); }}
+                onClick={() => { onLoadTree(s.conditions as TreeSpec); setMode('idle'); toast.show(t2('bulk.toast_segment_loaded', 'Loaded "{name}"', { name: s.name }), 'info'); }}
                 className="w-full text-left px-3 py-2 hover:bg-muted border-b border-border/50"
               >
                 <div className="font-semibold text-[13px] truncate">{s.name}</div>

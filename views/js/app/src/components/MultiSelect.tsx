@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { cn } from '../lib/utils';
+import { t, t2 } from '../lib/i18n';
 
 export interface MultiSelectOption {
   id: number;
@@ -21,9 +22,9 @@ export default function MultiSelect({
   options,
   value,
   onChange,
-  placeholder = 'Select…',
+  placeholder = t('multiselect.placeholder', 'Select…'),
   searchable = true,
-  emptyLabel = 'No options',
+  emptyLabel = t('multiselect.no_options', 'No options'),
   maxHeight = 240,
 }: MultiSelectProps) {
   const [open, setOpen] = useState(false);
@@ -71,7 +72,7 @@ export default function MultiSelect({
           <span className="truncate">{selectedLabels.join(', ')}</span>
         ) : (
           <span>
-            {selectedLabels[0]}, <span className="text-muted-foreground">+{selectedLabels.length - 1} more</span>
+            {selectedLabels[0]}, <span className="text-muted-foreground">{t2('multiselect.n_more', '+{n} more', { n: selectedLabels.length - 1 })}</span>
           </span>
         )}
         <span className="text-muted-foreground text-[12px]">▾</span>
@@ -85,7 +86,7 @@ export default function MultiSelect({
           {searchable && (
             <input
               className="px-3 py-2 text-[13px] border-b border-border focus:outline-none"
-              placeholder="Search…"
+              placeholder={t('multiselect.search', 'Search…')}
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               autoFocus
@@ -126,9 +127,9 @@ export default function MultiSelect({
           </div>
           {value.length > 0 && (
             <div className="border-t border-border px-3 py-1.5 text-[11px] flex items-center justify-between bg-muted">
-              <span>{value.length} selected</span>
+              <span>{t2('multiselect.n_selected', '{n} selected', { n: value.length })}</span>
               <button type="button" onClick={() => onChange([])} className="text-primary hover:underline">
-                Clear
+                {t('multiselect.clear', 'Clear')}
               </button>
             </div>
           )}

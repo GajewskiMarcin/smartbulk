@@ -12,6 +12,7 @@ declare(strict_types=1);
 namespace SmartBulk\Service\Ai;
 
 use RuntimeException;
+use SmartBulk\Service\Lang;
 use SmartBulk\Service\SettingsService;
 
 final class OpenAIProvider implements AIProviderInterface
@@ -36,7 +37,7 @@ final class OpenAIProvider implements AIProviderInterface
     {
         $apiKey = $this->settings->getSecret(SettingsService::KEY_OPENAI_API_KEY);
         if ($apiKey === '') {
-            throw new RuntimeException('OpenAI API key is not configured. Set it in Settings → AI providers.');
+            throw new RuntimeException(Lang::t('{provider} API key is not configured. Set it in Settings → AI providers.', ['provider' => 'OpenAI']));
         }
 
         $model = $params['model'] ?? 'gpt-4o-mini';
@@ -67,7 +68,7 @@ final class OpenAIProvider implements AIProviderInterface
 
         if ($status < 200 || $status >= 300) {
             $msg = $response['error']['message'] ?? ('HTTP ' . $status);
-            throw new RuntimeException('OpenAI API error: ' . $msg);
+            throw new RuntimeException(Lang::t('{provider} API error: {message}', ['provider' => 'OpenAI', 'message' => $msg]));
         }
 
         $content = trim((string) ($response['choices'][0]['message']['content'] ?? ''));
@@ -111,11 +112,11 @@ final class OpenAIProvider implements AIProviderInterface
         curl_close($ch);
 
         if ($raw === false) {
-            throw new RuntimeException('OpenAI HTTP call failed: ' . $err);
+            throw new RuntimeException(Lang::t('{provider} HTTP call failed: {message}', ['provider' => 'OpenAI', 'message' => $err]));
         }
         $decoded = json_decode((string) $raw, true);
         if (!is_array($decoded)) {
-            throw new RuntimeException('OpenAI returned invalid JSON: ' . substr((string) $raw, 0, 200));
+            throw new RuntimeException(Lang::t('{provider} returned invalid JSON: {response}', ['provider' => 'OpenAI', 'response' => substr((string) $raw, 0, 200)]));
         }
         return [$status, $decoded];
     }

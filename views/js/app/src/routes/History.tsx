@@ -63,10 +63,10 @@ export default function History() {
   const undoMutation = useMutation({
     mutationFn: (id: number) => bulkApi.undo(id),
     onSuccess: (res) => {
-      toast.show(`Restored ${res.restored} changes`, 'success');
+      toast.show(t2('toast.restored_n', 'Restored {n} changes', { n: res.restored }), 'success');
       qc.invalidateQueries({ queryKey: ['history'] });
     },
-    onError: (e: Error) => toast.show(e.message || 'Undo failed', 'error'),
+    onError: (e: Error) => toast.show(e.message || t('err.undo_failed', 'Undo failed'), 'error'),
   });
 
   const handleUndo = async (batch: BatchSummary) => {
@@ -146,7 +146,7 @@ export default function History() {
               <thead>
                 <tr className="border-b border-border text-[10px] uppercase tracking-wide text-muted-foreground">
                   <th className="text-left px-2 py-2 w-8"></th>
-                  <th className="text-left px-2 py-2 w-14">ID</th>
+                  <th className="text-left px-2 py-2 w-14">{t('history.col.id', 'ID')}</th>
                   <th className="text-left px-2 py-2 w-24">{t('history.col.kind', 'Kind')}</th>
                   <th className="text-left px-2 py-2 w-28">{t('history.col.status', 'Status')}</th>
                   <th className="text-left px-2 py-2">{t('history.col.summary', 'Summary')}</th>
@@ -210,7 +210,7 @@ function BatchRow({
             type="button"
             onClick={onToggleExpand}
             className="text-[11px] text-muted-foreground hover:text-slate-900 w-5 h-5 flex items-center justify-center"
-            title={expanded ? 'Collapse' : 'Expand'}
+            title={expanded ? t('approval.collapse', 'Collapse') : t('approval.expand', 'Expand')}
           >
             {expanded ? '▾' : '▸'}
           </button>
@@ -231,7 +231,7 @@ function BatchRow({
           {batch.products_failed > 0 && (
             <> / <span className="text-red-700 font-semibold">{batch.products_failed}</span></>
           )}
-          <div className="text-[10px] text-muted-foreground">of {batch.products_matched}</div>
+          <div className="text-[10px] text-muted-foreground">{t2('history.of_n', 'of {n}', { n: batch.products_matched })}</div>
         </td>
         <td className="px-2 py-2 align-top text-muted-foreground whitespace-nowrap">
           {formatDate(batch.started_at)}
@@ -329,7 +329,7 @@ function LogSummaryView({ summary }: { summary: LogSummary }) {
         <div className="flex flex-wrap gap-1.5">
           {summary.by_field.map((f) => (
             <span key={f.field} className="px-2 py-1 text-[11px] rounded-full border border-border bg-muted/50 text-slate-700">
-              {f.field} · {f.changed.toLocaleString()}{f.failed > 0 ? ` (${f.failed} failed)` : ''}
+              {f.field} · {f.changed.toLocaleString()}{f.failed > 0 ? ' ' + t2('ai.bulk_failed', '({n} failed)', { n: f.failed }) : ''}
             </span>
           ))}
         </div>
@@ -340,19 +340,19 @@ function LogSummaryView({ summary }: { summary: LogSummary }) {
 
 function BulkLogTable({ rows }: { rows: BulkLogRow[] }) {
   if (rows.length === 0) {
-    return <div className="text-[12px] text-muted-foreground">No log entries recorded.</div>;
+    return <div className="text-[12px] text-muted-foreground">{t('history.no_log_entries', 'No log entries recorded.')}</div>;
   }
   return (
     <div className="overflow-x-auto border border-border rounded-md bg-white">
       <table className="w-full text-[12px]">
         <thead>
           <tr className="border-b border-border bg-muted/50 text-[10px] uppercase tracking-wide text-muted-foreground">
-            <th className="text-left px-2 py-1.5 w-14">Prod.</th>
-            <th className="text-left px-2 py-1.5 w-14">Lang</th>
-            <th className="text-left px-2 py-1.5 w-36">Field</th>
-            <th className="text-left px-2 py-1.5">Old</th>
-            <th className="text-left px-2 py-1.5">New</th>
-            <th className="text-left px-2 py-1.5 w-20">Status</th>
+            <th className="text-left px-2 py-1.5 w-14">{t('history.col.prod', 'Prod.')}</th>
+            <th className="text-left px-2 py-1.5 w-14">{t('history.col.lang', 'Lang')}</th>
+            <th className="text-left px-2 py-1.5 w-36">{t('history.col.field', 'Field')}</th>
+            <th className="text-left px-2 py-1.5">{t('history.col.old', 'Old')}</th>
+            <th className="text-left px-2 py-1.5">{t('history.col.new', 'New')}</th>
+            <th className="text-left px-2 py-1.5 w-20">{t('common.status', 'Status')}</th>
           </tr>
         </thead>
         <tbody>
@@ -363,17 +363,17 @@ function BulkLogTable({ rows }: { rows: BulkLogRow[] }) {
               <td className="px-2 py-1.5 font-medium">{r.field}</td>
               <td className="px-2 py-1.5">
                 <span className="bg-red-50 text-red-900 px-1.5 py-0.5 rounded line-through break-words">
-                  {r.old || '(empty)'}
+                  {r.old || t('common.empty', '(empty)')}
                 </span>
               </td>
               <td className="px-2 py-1.5">
                 <span className="bg-green-50 text-green-900 px-1.5 py-0.5 rounded break-words">
-                  {r.new || '(empty)'}
+                  {r.new || t('common.empty', '(empty)')}
                 </span>
               </td>
               <td className="px-2 py-1.5">
                 <Badge variant={r.status === 'changed' ? 'success' : r.status === 'failed' ? 'destructive' : 'muted'}>
-                  {r.status}
+                  {t('status.' + r.status, r.status)}
                 </Badge>
               </td>
             </tr>
@@ -386,25 +386,25 @@ function BulkLogTable({ rows }: { rows: BulkLogRow[] }) {
 
 function AiRunsTable({ rows }: { rows: AiRunRow[] }) {
   if (rows.length === 0) {
-    return <div className="text-[12px] text-muted-foreground">No runs recorded.</div>;
+    return <div className="text-[12px] text-muted-foreground">{t('history.no_runs', 'No runs recorded.')}</div>;
   }
   const totalCost   = rows.reduce((s, r) => s + (r.cost_usd ?? 0), 0);
   const totalTokens = rows.reduce((s, r) => s + (r.tokens_in ?? 0) + (r.tokens_out ?? 0), 0);
   return (
     <div className="flex flex-col gap-2">
       <div className="text-[11px] text-muted-foreground">
-        {rows.length} run{rows.length === 1 ? '' : 's'} · {totalTokens.toLocaleString()} total tokens · ${totalCost.toFixed(4)} total
+        {t2('history.runs_summary', '{n} run(s) · {tokens} total tokens · ${cost} total', { n: rows.length, tokens: totalTokens.toLocaleString(), cost: totalCost.toFixed(4) })}
       </div>
       <div className="overflow-x-auto border border-border rounded-md bg-white">
         <table className="w-full text-[12px]">
           <thead>
             <tr className="border-b border-border bg-muted/50 text-[10px] uppercase tracking-wide text-muted-foreground">
-              <th className="text-left px-2 py-1.5 w-14">Prod.</th>
-              <th className="text-left px-2 py-1.5">Name</th>
-              <th className="text-left px-2 py-1.5">Output</th>
-              <th className="text-right px-2 py-1.5 w-20">Tokens</th>
-              <th className="text-right px-2 py-1.5 w-20">Cost</th>
-              <th className="text-left px-2 py-1.5 w-20">Status</th>
+              <th className="text-left px-2 py-1.5 w-14">{t('history.col.prod', 'Prod.')}</th>
+              <th className="text-left px-2 py-1.5">{t('history.col.name', 'Name')}</th>
+              <th className="text-left px-2 py-1.5">{t('history.col.output', 'Output')}</th>
+              <th className="text-right px-2 py-1.5 w-20">{t('history.col.tokens', 'Tokens')}</th>
+              <th className="text-right px-2 py-1.5 w-20">{t('history.col.cost', 'Cost')}</th>
+              <th className="text-left px-2 py-1.5 w-20">{t('common.status', 'Status')}</th>
             </tr>
           </thead>
           <tbody>
@@ -412,14 +412,14 @@ function AiRunsTable({ rows }: { rows: AiRunRow[] }) {
               <tr key={r.id_run} className="border-b border-border last:border-0">
                 <td className="px-2 py-1.5 font-mono text-muted-foreground">#{r.id_product}</td>
                 <td className="px-2 py-1.5 font-medium truncate max-w-[200px]">
-                  {r.product_name || <em className="text-muted-foreground">(no name)</em>}
+                  {r.product_name || <em className="text-muted-foreground">{t('common.no_name', '(no name)')}</em>}
                 </td>
                 <td className="px-2 py-1.5 break-words max-w-[360px]">
                   {r.error
                     ? <span className="text-red-700">{r.error}</span>
                     : r.output
                       ? <span className="text-slate-700">{truncate(r.output, 200)}</span>
-                      : <em className="text-muted-foreground">(empty)</em>}
+                      : <em className="text-muted-foreground">{t('common.empty', '(empty)')}</em>}
                 </td>
                 <td className="px-2 py-1.5 text-right text-muted-foreground whitespace-nowrap">
                   {r.tokens_in !== null && r.tokens_out !== null
@@ -431,7 +431,7 @@ function AiRunsTable({ rows }: { rows: AiRunRow[] }) {
                 </td>
                 <td className="px-2 py-1.5">
                   <Badge variant={r.status === 'accepted' || r.status === 'success' ? 'success' : r.status === 'failed' ? 'destructive' : 'muted'}>
-                    {r.status}
+                    {t('status.' + r.status, r.status)}
                   </Badge>
                 </td>
               </tr>

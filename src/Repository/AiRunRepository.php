@@ -59,14 +59,17 @@ final class AiRunRepository
         );
     }
 
-    /** @return int Daily spend in USD (rounded). */
+    /**
+     * Daily spend in USD. Includes failed runs: those from provider errors are
+     * stored with cost 0, while empty/truncated/refused outputs (see
+     * AIResponse::unusableReason) were billed and carry their real cost.
+     */
     public function getDailySpendUsd(int $idShop, string $date): float
     {
         $val = Db::getInstance()->getValue(
             'SELECT SUM(cost_usd) FROM `' . _DB_PREFIX_ . 'smartbulk_ai_run`
              WHERE id_shop = ' . (int) $idShop . '
-               AND DATE(created_at) = "' . pSQL($date) . '"
-               AND status <> "failed"'
+               AND DATE(created_at) = "' . pSQL($date) . '"'
         );
         return (float) ($val ?: 0);
     }
