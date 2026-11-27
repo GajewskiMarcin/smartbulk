@@ -34,7 +34,8 @@ final class AdminSmartBulkController extends CompatAdminController
             'currency' => $this->resolveCurrency(),
             'links' => [
                 'api'          => $this->generateUrl('smartbulk_api_ping'),
-                'buy_a_coffee' => 'https://buymeacoffee.com/marcingajewski',
+                'kofi'         => 'https://ko-fi.com/quinceproject',
+                'quince'       => 'https://github.com/quinceproject',
                 'github'       => 'https://github.com/GajewskiMarcin/smartbulk',
             ],
             'assets_version' => $this->resolveAssetsVersion(),

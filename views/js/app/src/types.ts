@@ -15,7 +15,8 @@ export interface SmartBulkBootstrap {
   currency?: { symbol: string; iso_code: string; format: string };
   links: {
     api: string;
-    buy_a_coffee: string;
+    kofi: string;
+    quince: string;
     github: string;
   };
   // Optional: when present, the user arrived via the native PS product-grid

@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.0.7] — 2026-11-27
+
+### Changed
+- **Support page**: the coffee card links to Ko-fi.
+
+### Added
+- **Support page**: a Quince Project block with a link to the project on GitHub.
+
 ## [1.0.6] — 2026-08-31
 
 ### Changed

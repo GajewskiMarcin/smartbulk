@@ -13,6 +13,8 @@
 {% block stylesheets %}
     {{ parent() }}
     <link rel="stylesheet" href="{{ smartbulk_assets }}/style.css?v={{ smartbulk_v }}">
+    {# Quince Project block on the Support page (plain CSS, outside the Tailwind build) #}
+    <link rel="stylesheet" href="/modules/smartbulk/views/css/quince-promo.css?v={{ smartbulk_v }}">
 {% endblock %}
 
 {% block content %}

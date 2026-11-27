@@ -222,8 +222,12 @@ To add a new content-health check: add a problem entry in `src/Service/Health/Co
 
 ## Support
 
-- ☕ [Buy Me a Coffee](https://buymeacoffee.com/marcingajewski) — if SmartBulk saves you time
+- ☕ [Support on Ko-fi](https://ko-fi.com/quinceproject) — if SmartBulk saves you time
 - 🐙 [GitHub Issues](https://github.com/GajewskiMarcin/smartbulk/issues) — bug reports & feature requests
+
+### From the same author
+
+**[Quince Project](https://quinceproject.github.io/)**: a theme and content engine for PrestaShop, extended with a suite of functional modules. Free and open source under OSL-3.0.
 
 ---
 

@@ -49,7 +49,7 @@ class SmartBulk extends Module
     public const MODULE_NAME = 'smartbulk';
 
     /** @var string Single source of truth for the module version (mirrored in config.xml). */
-    public const VERSION = '1.0.6';
+    public const VERSION = '1.0.7';
 
     /** @var string[] Hooks to register on install */
     private const HOOKS = [
@@ -716,9 +716,14 @@ class SmartBulk extends Module
             'prompts.click_to_insert' => $this->l('Click to insert at end', 'smartbulk'),
             'support.page_title' => $this->l('Support SmartBulk', 'smartbulk'),
             'support.page_subtitle' => $this->l('Free and open source — by marcingajewski.pl', 'smartbulk'),
-            'support.coffee_title' => $this->l('Buy me a coffee', 'smartbulk'),
+            'support.coffee_title' => $this->l('Support on Ko-fi', 'smartbulk'),
             'support.coffee_text' => $this->l('If SmartBulk saves you time, consider supporting development. Every coffee buys another evening of feature work.', 'smartbulk'),
-            'support.coffee_btn' => $this->l('☕ Support on Buy Me a Coffee', 'smartbulk'),
+            'support.coffee_btn' => $this->l('☕ Support on Ko-fi', 'smartbulk'),
+            'support.quince_lead' => $this->l('Discover the theme and engine for PrestaShop', 'smartbulk'),
+            'support.quince_text' => $this->l('A set of over 20 modules and a theme that let you freely manage the look and content of your shop and support back-office processes.', 'smartbulk'),
+            'support.quince_btn' => $this->l('Download for free from GitHub', 'smartbulk'),
+            'support.quince_php' => $this->l('PHP 8.1 or newer', 'smartbulk'),
+            'support.quince_licence' => $this->l('OSL-3.0 licence', 'smartbulk'),
             'support.github_title' => $this->l('GitHub repository', 'smartbulk'),
             'support.github_text' => $this->l('Report issues, request features, or contribute. The module is open source under the AFL-3.0 license.', 'smartbulk'),
             'support.github_btn' => $this->l('Open on GitHub →', 'smartbulk'),
